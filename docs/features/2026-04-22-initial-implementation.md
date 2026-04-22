@@ -19,7 +19,7 @@ Bootstrapped the repository with a `uv`-managed Python 3.12 package (`src/musicb
 
 Shared infrastructure: `config.py` (pydantic-settings with `MUSICBRAINZ_DB_SETUP_*` env vars), `errors.py` (typed exceptions with `exit_code` attribute), `logging.py` (rich + file handler), `progress.py` (single `ProgressManager` for nested download/COPY bars), `db.py` (psycopg3 connect + `bulk_session` context manager that SET LOCALs `synchronous_commit=off`, `maintenance_work_mem=2GB`, etc. during COPY).
 
-Docs: `AGENTS.md` with architecture + workflow rules (branching, docs, PR, gh). `CLAUDE.md` is a 2-line pointer to `AGENTS.md`. `docs/PREREQUISITES.md` covers the operator-installed custom collation C extensions.
+Docs: `AGENTS.md` with architecture + workflow rules (branching, docs, PR, gh). `CLAUDE.md` is a 2-line pointer to `AGENTS.md`. `docs/README.md` covers the operator-installed custom collation C extensions.
 
 Tests: 20 unit tests covering manifest ordering, SHA256 parsing, tar member routing, mirror HTML parsing, table→schema mapping. `tests/docker/Dockerfile` layers `musicbrainz_collate`/`musicbrainz_unaccent` on top of `postgres:16` for future testcontainers integration.
 
@@ -77,7 +77,7 @@ uv run musicbrainz-db-setup run \
 | `AGENTS.md` | Architecture + workflow rules (branching, docs, PR, gh). |
 | `CLAUDE.md` | Two-line pointer to `AGENTS.md`. |
 | `README.md` | Quick-start and config reference. |
-| `docs/PREREQUISITES.md` | PG 16, contrib, custom collation C extensions, role privileges, disk/network sizing. |
+| `docs/README.md` | PG 16, contrib, custom collation C extensions, role privileges, disk/network sizing. |
 | `docs/plans/2026-04-22-initial-implementation.md` | This feature's plan. |
 | `docs/features/2026-04-22-initial-implementation.md` | This document. |
 | `docs/sessions/2026-04-22-initial-implementation-{planning,implementation}-session.md` | Session transcripts. |
