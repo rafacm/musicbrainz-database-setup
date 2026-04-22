@@ -33,7 +33,7 @@ def preflight(conn: Connection) -> None:
         raise PrerequisiteMissing(
             "Missing MusicBrainz custom extensions: "
             + ", ".join(missing_collation)
-            + ". See docs/PREREQUISITES.md for build instructions."
+            + ". See docs/README.md for build instructions."
         )
 
 

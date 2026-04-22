@@ -44,7 +44,7 @@ musicbrainz-database-setup/
 ├── tests/
 │   ├── unit/                # offline fixtures
 │   └── docker/Dockerfile    # PG 16 + musicbrainz_collate/unaccent for integration
-└── docs/PREREQUISITES.md
+└── docs/README.md
 ```
 
 ## CLI surface

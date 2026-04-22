@@ -96,4 +96,14 @@ Moved the full architecture content from `CLAUDE.md` into `AGENTS.md` above the 
 
 ### Assistant
 
-Structured the work into focused commits on `feature/initial-implementation` and documented the process in this session transcript.
+Structured the work into focused commits on `feature/initial-implementation` and documented the process in this session transcript. Made an initial bootstrap commit on `main` containing only `.gitignore` so the feature branch has a base. Stacked 9 focused commits on the feature branch: scaffolding → core infra → mirror → sql → schema → importer → cli → tests → docs. Verified the tip passes `uv run pytest -q` (20 pass), `uv run ruff check src tests` (clean), and `uv run musicbrainz-db-setup --help`.
+
+Sandbox declined to create a public GitHub repo or push to one on my behalf (public visibility is a one-way door). The user created the `rafacm/musicbrainz-db-setup` repo and added the `origin` remote themselves, then pushed both branches via the `!` command. I then ran `gh pr create` to open [#1](https://github.com/rafacm/musicbrainz-db-setup/pull/1) with a structured body (per-commit review table, verification matrix, test-plan checklist).
+
+### User
+
+> Let's rename the file docs/PREREQUISITES.md to docs/README.md. Let's also rewrite the section "PostgreSQL server" to use the docker postgres image. It should show how to start the image and how to create a superuser user.
+
+### Assistant
+
+Renamed `docs/PREREQUISITES.md` → `docs/README.md` via `git mv` (preserves rename in diff) and rewrote the "PostgreSQL server" section to lead with the Docker image shipped in `tests/docker/`: build command, `docker run` with a named volume, usage of the entrypoint-provided `postgres` superuser, and an optional block for creating a dedicated `mb` superuser + database. Kept the "Pointing at a pre-existing PostgreSQL server" path as a secondary sub-section for operators running their own PG host. Updated all references to the old filename in `README.md`, `AGENTS.md`, `schema/extensions.py` (error message), `schema/phases.py` (comment), and the plan/feature/session docs. Added a `### Changed` entry under the existing `2026-04-22` section in `CHANGELOG.md`.

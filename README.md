@@ -14,7 +14,7 @@ uv run musicbrainz-db-setup run \
     --latest
 ```
 
-See [docs/PREREQUISITES.md](docs/PREREQUISITES.md) for the PostgreSQL server prerequisites — specifically the custom `musicbrainz_collate` / `musicbrainz_unaccent` extensions which must be compiled and installed on the server host before the tool can create collations.
+See [docs/README.md](docs/README.md) for the PostgreSQL server prerequisites — the fastest path is the Docker image the repo ships in `tests/docker/`, which bakes in the custom `musicbrainz_collate` / `musicbrainz_unaccent` extensions the tool needs to create collations.
 
 ## Commands
 
