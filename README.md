@@ -108,4 +108,4 @@ This tool is built on the following primary sources:
 
 ## License
 
-MIT.
+[MIT](LICENSE) — © 2026 Rafael Cordones.
