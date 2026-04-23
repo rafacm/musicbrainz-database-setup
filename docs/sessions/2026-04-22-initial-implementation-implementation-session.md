@@ -189,3 +189,32 @@ Performed the rename in one additive commit (no force push needed since we're no
 Ran `uv run pytest -q` (20/20 pass), `uv run ruff check src tests` (clean), `uv run musicbrainz-database-setup --help` (renders under the new name).
 
 The user is renaming the GitHub repo separately (from `rafacm/musicbrainz-db-setup` to `rafacm/musicbrainz-database-setup`). Once they've done that, I'll push the rename commit to the renamed remote and update the open PR's branch ref.
+
+### User
+
+> Did you push these changes? Have you also updated the PR description?
+
+### Assistant
+
+Confirmed the push landed (commit `5eaabee` on origin; the push went through via GitHub's automatic redirect because the user had renamed the repo on GitHub while I was working locally). Updated `origin` URL to the new canonical one (`git@github.com:rafacm/musicbrainz-database-setup.git`) so future pushes skip the redirect. Rewrote the PR body to reflect the current 12-commit state (old body was stale): split the commit-review table into "Initial implementation (1–9)" and "Refinements (10–12)", noted that commit 8's Dockerfile is removed again in commit 11 so reviewers don't flag it as abandoned, removed the "custom C extensions" notes, and updated verification + test-plan to use the new CLI name.
+
+### User
+
+> Let's flesh out the README as follows:
+> - The description should me more straightforward about the tool existence.
+> - Should briefly mention what the requirements are for the Postgres Docker instance and provide links/reference to where we got this information from
+> - The Quick start should show how you spin up a standard Postgres instance via a Docker command and how you import the core module
+> - We need to add References at the end to the pages and projects we have based this work on
+> - We should clarify which modules are available
+> - I also do not think we need the docs/README.md anymore, or?
+
+### Assistant
+
+Rewrote `README.md` and deleted `docs/README.md`:
+
+- **Direct opening** — leads with "`musicbrainz-database-setup` is a Python CLI that sets up a full MusicBrainz database in a PostgreSQL instance you control", followed by what it actually does (download + schema via upstream `admin/sql/*.sql` + streaming COPY) and why it exists (consolidates the scattered wiki + Perl scripts + `musicbrainz-docker` sources into a single command).
+- **Requirements** — concise list of PG 16+ / contrib extensions / ICU support / SUPERUSER, with inline links to the authoritative upstream files (`Extensions.sql`, `CreateCollations.sql`) and a note that every official `postgres:*` image satisfies everything. Added disk-size estimates and a managed-PG note (RDS `rds_superuser`, Cloud SQL `postgres`).
+- **Quick start** — three-step copy-paste: `docker run … postgres:17-alpine`, `uv sync`, `uv run musicbrainz-database-setup run --db … --modules core --latest`. Mentions the interactive picker when `--latest`/`--date` are omitted.
+- **Modules table** — archive filename, target Postgres schema, contents, and licence (CC0 vs CC BY-NC-SA) for all ten modules (`core`, `derived`, `editor`, `edit`, `cover-art`, `event-art`, `stats`, `documentation`, `wikidocs`, `cdstubs`).
+- **References** — full list at the bottom linking to MusicBrainz wiki pages (Download, Schema, Entity, JSON Data Dumps), `musicbrainz-server/admin/sql/` and `admin/`, `metabrainz/musicbrainz-docker`, `acoustid/mbslave` (related Python tool), `acoustid/mbdata` (SQLAlchemy models), and the official `postgres` Docker image.
+- **Deleted `docs/README.md`** — its content (Docker flow, managed PG note, disk sizing) is absorbed into the main README. Verified no code references remained (the error-message pointer was already removed in the extensions-refactor commit). CHANGELOG entry added under 2026-04-23.
