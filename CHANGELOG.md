@@ -26,3 +26,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `schema/extensions.preflight()` now probes `pg_collation` for ICU support (via `collprovider = 'i'`) instead of looking for `musicbrainz_collate` / `musicbrainz_unaccent` extensions.
 - Rewrote `docs/README.md` around vanilla `postgres:*` images — including an `image: postgres:17-alpine` snippet for projects that already have a docker-compose.yml. Added a note on managed Postgres (RDS, Cloud SQL).
 - Renamed the project end-to-end from `musicbrainz-db-setup` → `musicbrainz-database-setup` for SEO and CLI/package/repo consistency. Affected: Python module (`musicbrainz_db_setup` → `musicbrainz_database_setup`), PyPI package, CLI entrypoint, env-var prefix (`MUSICBRAINZ_DB_SETUP_*` → `MUSICBRAINZ_DATABASE_SETUP_*`), bookkeeping PG schema (`musicbrainz_db_setup` → `musicbrainz_database_setup`), XDG cache paths, and the GitHub repo itself. Verbatim user messages from prior session transcripts were preserved.
+- Rewrote the root `README.md`: direct opening paragraph stating what the tool is, a `Requirements` section that cites upstream sources (`Extensions.sql`, `CreateCollations.sql`, the `postgres` Docker image), a Quick start that boots `postgres:17-alpine` and imports the `core` module in three commands, a full `Modules` table with archive / target schema / contents / licence, and a `References` section linking to every primary source this tool is built on.
+
+### Removed
+
+- Deleted `docs/README.md`. Its content (PG requirements, docker-compose snippet, managed-PG note, disk sizing) folded into the root `README.md` where it belongs alongside the Quick start — one README is clearer than two for prerequisites.
