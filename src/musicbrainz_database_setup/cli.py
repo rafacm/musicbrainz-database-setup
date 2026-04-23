@@ -210,7 +210,7 @@ def schema_create(
     with _handle_errors():
         mods = _parse_modules(modules)
         sha = github.resolve_ref(ref)
-        with connect(db) as conn:
+        with connect(db) as conn, progress_session():
             orch = Orchestrator(conn, sha=sha, modules=mods)
             orch.run(phase)
         typer.echo(f"Schema phase {phase.value} complete (ref {ref} → {sha[:12]}).")
@@ -267,12 +267,11 @@ def run(
             with progress_session():
                 for archive_name in manifest.archives_for(mods):
                     dl.download_archive(chosen, archive_name, dump_dir, checksums=checksums)
-        with connect(db) as conn:
+        with connect(db) as conn, progress_session():
             orch = Orchestrator(conn, sha=sha, modules=mods)
             orch.run_pre_import()
-            with progress_session():
-                for archive_name in manifest.archives_for(mods):
-                    import_archive(conn, dump_dir / archive_name)
+            for archive_name in manifest.archives_for(mods):
+                import_archive(conn, dump_dir / archive_name)
             orch.run_post_import()
         typer.echo("All done.")
 
