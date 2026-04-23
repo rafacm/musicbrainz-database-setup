@@ -14,6 +14,8 @@ PostgreSQL **16 or later** with:
 
 The tool pre-flights `pg_available_extensions` and `pg_collation` at startup and aborts with an actionable message if anything is missing.
 
+The **`psql` client** must be available on `$PATH` on the machine running the tool. The upstream `admin/sql/*.sql` files use psql meta-commands (`\set ON_ERROR_STOP 1`, etc.) and manage their own `BEGIN;/COMMIT;` — we shell out to `psql` for each file, mirroring `admin/InitDb.pl`'s own approach, rather than reimplementing that parsing in Python. Install it with `brew install libpq` (macOS), `apt install postgresql-client` (Debian/Ubuntu), `apk add postgresql-client` (Alpine), or the equivalent on your distro.
+
 **Disk:** expect ~10–15 GB of downloads for `core`, ~30 GB for `core + derived`, and the live database grows to roughly 100–160 GB once indexes are built. More if `cover-art` or `event-art` are selected.
 
 The tool also works against managed PostgreSQL (RDS, Cloud SQL, etc.) as long as the role you connect as can `CREATE EXTENSION` (on RDS that's `rds_superuser`; on Cloud SQL, `postgres`).
@@ -90,6 +92,29 @@ Precedence: CLI flags > env vars > `.env` file > defaults.
 
 - One-shot full imports only. Replication packets (`LATEST-replication`) are out of scope for v1.
 - Fetches admin SQL from [`metabrainz/musicbrainz-server`](https://github.com/metabrainz/musicbrainz-server) on GitHub at a configurable git ref. Default is `master`; pin to a `v-NN-schema-change` tag for full reproducibility.
+
+## Status
+
+>  This project is under active development.
+
+### What's already implemented
+
+- Listing dated dumps on the MetaBrainz mirror and resolving `LATEST`.
+- Interactive picker for dated dumps when `--date` / `--latest` / `--dump-dir` are all omitted.
+- Resumable downloads with SHA256 verification (`.part` file renamed only after the digest matches).
+- Fetching `admin/sql/*.sql` from upstream `metabrainz/musicbrainz-server` at a configurable git ref, cached on disk keyed by resolved commit SHA.
+- Applying DDL files via `psql` in the canonical `admin/InitDb.pl` phase order (Extensions → Collations → Types → Tables → COPY → PrimaryKeys → Functions → Indexes → FKs → Constraints → Sequences → Views → Triggers).
+- Streaming TSV archive members into `COPY FROM STDIN` via psycopg 3, with no intermediate disk extraction.
+- Per-archive and per-table progress bars via `rich`.
+- Idempotent reruns via `musicbrainz_database_setup.applied_phases` and `musicbrainz_database_setup.imported_archives` bookkeeping tables.
+- All ten dump modules: `core`, `derived`, `editor`, `edit`, `cover-art`, `event-art`, `stats`, `documentation`, `wikidocs`, `cdstubs`.
+- Pre-flights for the required contrib extensions, ICU support on the server, and `psql` on the client.
+
+See [CHANGELOG.md](CHANGELOG.md) for the full list of implemented features, fixes, implementation plans, feature documentation and session transcripts.
+
+### What's coming
+
+- **`SCHEMA_SEQUENCE` cross-check** — compare the dump archive's `SCHEMA_SEQUENCE` file against the `current_schema_sequence` value in the fetched `CreateTables.sql` and fail hard on mismatch, so silently pointing the tool at an incompatible upstream `--ref` can't corrupt an import. `--allow-schema-mismatch` as an escape hatch.
 
 ## References
 

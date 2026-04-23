@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 
-from psycopg import Connection, sql
+from psycopg import Connection
 
 from musicbrainz_database_setup.errors import PrerequisiteMissing
 from musicbrainz_database_setup.schema.phases import REQUIRED_EXTENSIONS
@@ -49,10 +49,3 @@ def preflight(conn: Connection) -> None:
         )
 
 
-def ensure_extensions(conn: Connection) -> None:
-    with conn.cursor() as cur:
-        for ext in REQUIRED_EXTENSIONS:
-            cur.execute(
-                sql.SQL("CREATE EXTENSION IF NOT EXISTS {}").format(sql.Identifier(ext))
-            )
-            log.debug("Ensured extension %s", ext)

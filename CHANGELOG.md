@@ -35,3 +35,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 
 - `LICENSE` file at the repo root (MIT, © 2026 Rafael Cordones). Matches the existing `pyproject.toml` declaration and brings this project in line with the rest of the MB tooling layer (`mbdata`, `mbslave`, `musicbrainz-docker` are all MIT). `pyproject.toml` now points at the file via `license = { file = "LICENSE" }`.
+- New `Status` section in `README.md` with "What's already implemented" (bulleted summary of shipped functionality) and "What's coming" (`SCHEMA_SEQUENCE` cross-check, canary CI for upstream phase-file drift, pre-built GHCR runner image).
+
+### Fixed
+
+- Schema orchestrator failed on the very first SQL file with `syntax error at or near "\"` because the upstream `admin/sql/*.sql` files are psql-flavoured (start with `\set ON_ERROR_STOP 1`, wrap themselves in `BEGIN;/COMMIT;`) and we were handing them to psycopg3 directly. New `schema/psql.py` shells out to `psql -f <file>` using credentials extracted from the psycopg connection — matching what `admin/InitDb.pl` does upstream. `psql` is now a documented client-machine requirement and `schema.psql.ensure_psql_available()` pre-flights it. Dropped the now-redundant `schema.extensions.ensure_extensions()` since `Extensions.sql` does the same `CREATE EXTENSION IF NOT EXISTS` calls itself.
