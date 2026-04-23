@@ -3,7 +3,7 @@ revision = 3
 requires-python = ">=3.11"
 
 [options]
-exclude-newer = "2026-04-15T17:38:33.935458Z"
+exclude-newer = "2026-04-16T09:49:35.500632Z"
 exclude-newer-span = "P7D"
 
 [[package]]
@@ -217,7 +217,7 @@ wheels = [
 ]
 
 [[package]]
-name = "musicbrainz-db-setup"
+name = "musicbrainz-database-setup"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

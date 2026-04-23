@@ -8,8 +8,8 @@ from urllib.parse import urljoin
 
 import httpx
 
-from musicbrainz_db_setup.errors import NetworkError
-from musicbrainz_db_setup.mirror.client import http_client
+from musicbrainz_database_setup.errors import NetworkError
+from musicbrainz_database_setup.mirror.client import http_client
 
 DATED_DIR_RE = re.compile(r'href="(\d{8}-\d{6})/"', re.IGNORECASE)
 LATEST_FILENAME = "LATEST"

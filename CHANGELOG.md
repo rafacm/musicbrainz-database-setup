@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- Initial implementation of the `musicbrainz-db-setup` CLI — downloads MusicBrainz dump archives, creates the schema (by fetching `admin/sql/*.sql` from `metabrainz/musicbrainz-server` at a configurable git ref), and streams the TSVs into `COPY FROM STDIN`. Plan: [`docs/plans/2026-04-22-initial-implementation.md`](docs/plans/2026-04-22-initial-implementation.md). Feature doc: [`docs/features/2026-04-22-initial-implementation.md`](docs/features/2026-04-22-initial-implementation.md). Sessions: [planning](docs/sessions/2026-04-22-initial-implementation-planning-session.md), [implementation](docs/sessions/2026-04-22-initial-implementation-implementation-session.md).
+- Initial implementation of the `musicbrainz-database-setup` CLI — downloads MusicBrainz dump archives, creates the schema (by fetching `admin/sql/*.sql` from `metabrainz/musicbrainz-server` at a configurable git ref), and streams the TSVs into `COPY FROM STDIN`. Plan: [`docs/plans/2026-04-22-initial-implementation.md`](docs/plans/2026-04-22-initial-implementation.md). Feature doc: [`docs/features/2026-04-22-initial-implementation.md`](docs/features/2026-04-22-initial-implementation.md). Sessions: [planning](docs/sessions/2026-04-22-initial-implementation-planning-session.md), [implementation](docs/sessions/2026-04-22-initial-implementation-implementation-session.md).
 
 ### Changed
 
@@ -25,3 +25,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - `schema/extensions.preflight()` now probes `pg_collation` for ICU support (via `collprovider = 'i'`) instead of looking for `musicbrainz_collate` / `musicbrainz_unaccent` extensions.
 - Rewrote `docs/README.md` around vanilla `postgres:*` images — including an `image: postgres:17-alpine` snippet for projects that already have a docker-compose.yml. Added a note on managed Postgres (RDS, Cloud SQL).
+- Renamed the project end-to-end from `musicbrainz-db-setup` → `musicbrainz-database-setup` for SEO and CLI/package/repo consistency. Affected: Python module (`musicbrainz_db_setup` → `musicbrainz_database_setup`), PyPI package, CLI entrypoint, env-var prefix (`MUSICBRAINZ_DB_SETUP_*` → `MUSICBRAINZ_DATABASE_SETUP_*`), bookkeeping PG schema (`musicbrainz_db_setup` → `musicbrainz_database_setup`), XDG cache paths, and the GitHub repo itself. Verbatim user messages from prior session transcripts were preserved.

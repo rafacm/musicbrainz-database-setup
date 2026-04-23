@@ -7,7 +7,7 @@ import io
 import tarfile
 from pathlib import Path
 
-from musicbrainz_db_setup.importer.archive import (
+from musicbrainz_database_setup.importer.archive import (
     iter_mbdump_members,
     open_archive,
     read_metadata_file,

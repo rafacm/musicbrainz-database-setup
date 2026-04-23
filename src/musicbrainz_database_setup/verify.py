@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from musicbrainz_db_setup.importer.archive import read_metadata_file
+from musicbrainz_database_setup.importer.archive import read_metadata_file
 
 log = logging.getLogger(__name__)
 

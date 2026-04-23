@@ -8,11 +8,11 @@ from urllib.parse import urljoin
 
 import httpx
 
-from musicbrainz_db_setup.errors import ChecksumError, NetworkError
-from musicbrainz_db_setup.mirror.checksums import Checksums, parse, verify_file
-from musicbrainz_db_setup.mirror.client import http_client
-from musicbrainz_db_setup.mirror.index import DumpDirectory
-from musicbrainz_db_setup.progress import ProgressManager
+from musicbrainz_database_setup.errors import ChecksumError, NetworkError
+from musicbrainz_database_setup.mirror.checksums import Checksums, parse, verify_file
+from musicbrainz_database_setup.mirror.client import http_client
+from musicbrainz_database_setup.mirror.index import DumpDirectory
+from musicbrainz_database_setup.progress import ProgressManager
 
 log = logging.getLogger(__name__)
 

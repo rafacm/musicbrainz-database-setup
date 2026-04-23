@@ -1,4 +1,4 @@
-"""Typer CLI for musicbrainz-db-setup."""
+"""Typer CLI for musicbrainz-database-setup."""
 
 from __future__ import annotations
 
@@ -10,25 +10,25 @@ from typing import Annotated
 
 import typer
 
-from musicbrainz_db_setup import __version__, config, verify
-from musicbrainz_db_setup.db import connect
-from musicbrainz_db_setup.errors import MBSetupError, UserError
-from musicbrainz_db_setup.importer.copy import import_archive
-from musicbrainz_db_setup.logging import configure, get_console
-from musicbrainz_db_setup.mirror import download as dl
-from musicbrainz_db_setup.mirror.index import (
+from musicbrainz_database_setup import __version__, config, verify
+from musicbrainz_database_setup.db import connect
+from musicbrainz_database_setup.errors import MBSetupError, UserError
+from musicbrainz_database_setup.importer.copy import import_archive
+from musicbrainz_database_setup.logging import configure, get_console
+from musicbrainz_database_setup.mirror import download as dl
+from musicbrainz_database_setup.mirror.index import (
     DumpDirectory,
     build_dated_dir,
     list_dated_dirs,
     resolve_latest,
 )
-from musicbrainz_db_setup.progress import progress_session
-from musicbrainz_db_setup.schema.orchestrator import Orchestrator
-from musicbrainz_db_setup.schema.phases import Phase
-from musicbrainz_db_setup.sql import github, manifest
+from musicbrainz_database_setup.progress import progress_session
+from musicbrainz_database_setup.schema.orchestrator import Orchestrator
+from musicbrainz_database_setup.schema.phases import Phase
+from musicbrainz_database_setup.sql import github, manifest
 
 app = typer.Typer(
-    name="musicbrainz-db-setup",
+    name="musicbrainz-database-setup",
     no_args_is_help=True,
     add_completion=False,
     help="Download MusicBrainz database dumps and import them into PostgreSQL.",
@@ -45,7 +45,7 @@ DbOption = Annotated[
     str | None,
     typer.Option(
         "--db",
-        envvar="MUSICBRAINZ_DB_SETUP_DB_URL",
+        envvar="MUSICBRAINZ_DATABASE_SETUP_DB_URL",
         help="PostgreSQL connection URL.",
     ),
 ]
@@ -53,7 +53,7 @@ ModulesOption = Annotated[
     str,
     typer.Option(
         "--modules",
-        envvar="MUSICBRAINZ_DB_SETUP_MODULES",
+        envvar="MUSICBRAINZ_DATABASE_SETUP_MODULES",
         help=(
             "Comma-separated modules: core,derived,editor,edit,cover-art,"
             "event-art,stats,documentation,wikidocs,cdstubs."
@@ -64,7 +64,7 @@ MirrorOption = Annotated[
     str,
     typer.Option(
         "--mirror",
-        envvar="MUSICBRAINZ_DB_SETUP_MIRROR_URL",
+        envvar="MUSICBRAINZ_DATABASE_SETUP_MIRROR_URL",
         help="Base URL of the MusicBrainz dump mirror.",
     ),
 ]
@@ -72,7 +72,7 @@ RefOption = Annotated[
     str,
     typer.Option(
         "--ref",
-        envvar="MUSICBRAINZ_DB_SETUP_SQL_REF",
+        envvar="MUSICBRAINZ_DATABASE_SETUP_SQL_REF",
         help="Git ref (branch/tag/SHA) for admin/sql/*.sql.",
     ),
 ]
@@ -80,7 +80,7 @@ WorkdirOption = Annotated[
     Path | None,
     typer.Option(
         "--workdir",
-        envvar="MUSICBRAINZ_DB_SETUP_WORKDIR",
+        envvar="MUSICBRAINZ_DATABASE_SETUP_WORKDIR",
         help="Where to store downloaded archives.",
     ),
 ]

@@ -160,3 +160,32 @@ Simplified accordingly:
 - Updated `README.md` and `AGENTS.md` references; added a 2026-04-23 `Removed` + `Changed` entry to `CHANGELOG.md`.
 
 Ran `uv run pytest -q` (20/20 pass) and `uv run ruff check src tests` (clean).
+
+### User
+
+> From a SEO perspective, what's a better project name "musicbrainz-db-setup" or "musicbrainz-database-setup". I am of the opinion that the CLI command and the GitHun repo should have the same name. Do you agree?
+
+### Assistant
+
+Agreed: single name across CLI / PyPI / GitHub repo is the right default for discoverability, and `musicbrainz-database-setup` is the SEO winner (real word > abbreviation; GitHub tokenizes on hyphens). Flagged that the local directory was already `musicbrainz-database-setup` — the `-db-` form was the outlier, introduced partway through the 2026-04-22 session. No ergonomic cost since this is a one-shot tool, not an everyday CLI.
+
+### User
+
+> Let's do the rename now on this branch. I will rename the repo and we can force push to the PR. OK?
+
+### Assistant
+
+Performed the rename in one additive commit (no force push needed since we're not rewriting history, just stacking):
+
+1. `git mv src/musicbrainz_db_setup src/musicbrainz_database_setup`.
+2. Sed pass (per-file `while read` loop, bash word-splitting safe) across every non-transcript `.py`/`.md`/`.toml`:
+   - `musicbrainz_db_setup` → `musicbrainz_database_setup` (Python module + bookkeeping PG schema)
+   - `musicbrainz-db-setup` → `musicbrainz-database-setup` (CLI command, package name, cache paths, `.gitignore` glob)
+   - `MUSICBRAINZ_DB_SETUP_` → `MUSICBRAINZ_DATABASE_SETUP_` (env-var prefix)
+3. Removed `uv.lock` and `.venv`, then ran `uv sync --extra dev` to regenerate the lockfile under the new package name.
+4. Excluded `docs/sessions/` from the sed pass to preserve verbatim user quotes from 2026-04-22 that referred to the `musicbrainz-db-setup` name. Appended this interaction instead.
+5. Added a 2026-04-23 `Changed` entry to `CHANGELOG.md` documenting the rename.
+
+Ran `uv run pytest -q` (20/20 pass), `uv run ruff check src tests` (clean), `uv run musicbrainz-database-setup --help` (renders under the new name).
+
+The user is renaming the GitHub repo separately (from `rafacm/musicbrainz-db-setup` to `rafacm/musicbrainz-database-setup`). Once they've done that, I'll push the rename commit to the renamed remote and update the open PR's branch ref.

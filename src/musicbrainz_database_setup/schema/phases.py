@@ -19,6 +19,6 @@ REQUIRED_EXTENSIONS = ("cube", "earthdistance", "unaccent")
 # So we only need the stock contrib extensions above plus an ICU-enabled
 # server, which every official postgres:* image provides.
 
-BOOKKEEPING_SCHEMA = "musicbrainz_db_setup"
+BOOKKEEPING_SCHEMA = "musicbrainz_database_setup"
 APPLIED_PHASES_TABLE = "applied_phases"
 IMPORTED_ARCHIVES_TABLE = "imported_archives"

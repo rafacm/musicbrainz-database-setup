@@ -1,7 +1,7 @@
 """Runs schema DDL phases in the canonical InitDb.pl order.
 
 Each SQL file is executed in its own transaction. Completed phases are
-recorded in ``musicbrainz_db_setup.applied_phases`` so reruns are idempotent.
+recorded in ``musicbrainz_database_setup.applied_phases`` so reruns are idempotent.
 """
 
 from __future__ import annotations
@@ -11,15 +11,15 @@ from pathlib import Path
 
 from psycopg import Connection, sql
 
-from musicbrainz_db_setup.errors import SchemaError
-from musicbrainz_db_setup.schema.extensions import ensure_extensions, preflight
-from musicbrainz_db_setup.schema.phases import (
+from musicbrainz_database_setup.errors import SchemaError
+from musicbrainz_database_setup.schema.extensions import ensure_extensions, preflight
+from musicbrainz_database_setup.schema.phases import (
     APPLIED_PHASES_TABLE,
     BOOKKEEPING_SCHEMA,
     Phase,
 )
-from musicbrainz_db_setup.sql import github, manifest
-from musicbrainz_db_setup.sql.manifest import SqlFile
+from musicbrainz_database_setup.sql import github, manifest
+from musicbrainz_database_setup.sql.manifest import SqlFile
 
 log = logging.getLogger(__name__)
 

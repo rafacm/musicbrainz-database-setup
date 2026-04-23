@@ -1,4 +1,4 @@
-from musicbrainz_db_setup.sql import manifest
+from musicbrainz_database_setup.sql import manifest
 
 
 def test_archives_for_core_default():

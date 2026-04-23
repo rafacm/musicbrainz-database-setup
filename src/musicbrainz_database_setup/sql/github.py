@@ -12,9 +12,9 @@ from pathlib import Path
 
 import httpx
 
-from musicbrainz_db_setup.errors import NetworkError
-from musicbrainz_db_setup.mirror.client import http_client
-from musicbrainz_db_setup.sql.cache import sql_cache_path
+from musicbrainz_database_setup.errors import NetworkError
+from musicbrainz_database_setup.mirror.client import http_client
+from musicbrainz_database_setup.sql.cache import sql_cache_path
 
 log = logging.getLogger(__name__)
 

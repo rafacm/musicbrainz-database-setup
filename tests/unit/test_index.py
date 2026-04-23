@@ -1,6 +1,6 @@
 """Test the regex parsing of the fullexport directory index."""
 
-from musicbrainz_db_setup.mirror.index import DATED_DIR_RE
+from musicbrainz_database_setup.mirror.index import DATED_DIR_RE
 
 INDEX_HTML = """
 <html><body>

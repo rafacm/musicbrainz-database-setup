@@ -5,7 +5,7 @@ from contextlib import contextmanager
 
 import httpx
 
-USER_AGENT = "musicbrainz-db-setup/0.1 (+https://github.com/)"
+USER_AGENT = "musicbrainz-database-setup/0.1 (+https://github.com/)"
 DEFAULT_TIMEOUT = httpx.Timeout(30.0, read=120.0)
 
 

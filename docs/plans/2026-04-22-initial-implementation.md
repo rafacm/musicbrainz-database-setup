@@ -4,7 +4,7 @@
 
 ## Context
 
-Greenfield repository. Goal: a Python CLI (`musicbrainz-db-setup`) that, given a PostgreSQL connection, lists/selects a MusicBrainz dump on the MetaBrainz mirror, downloads the selected archives with progress bars and SHA256 verification, creates the MusicBrainz schema by fetching the upstream `admin/sql/*.sql` files at a pinned git ref, and streams the TSVs inside the archives directly into `COPY FROM STDIN` with per-table progress bars.
+Greenfield repository. Goal: a Python CLI (`musicbrainz-database-setup`) that, given a PostgreSQL connection, lists/selects a MusicBrainz dump on the MetaBrainz mirror, downloads the selected archives with progress bars and SHA256 verification, creates the MusicBrainz schema by fetching the upstream `admin/sql/*.sql` files at a pinned git ref, and streams the TSVs inside the archives directly into `COPY FROM STDIN` with per-table progress bars.
 
 Today this process is scattered across the MusicBrainz wiki, `musicbrainz-server/admin/`, `mbslave`, and `musicbrainz-docker`. A single Python tool with a clean CLI consolidates it.
 
@@ -33,7 +33,7 @@ Today this process is scattered across the MusicBrainz wiki, `musicbrainz-server
 ```
 musicbrainz-database-setup/
 ├── pyproject.toml
-├── src/musicbrainz_db_setup/
+├── src/musicbrainz_database_setup/
 │   ├── cli.py               # Typer app + subcommands
 │   ├── config.py            # pydantic-settings
 │   ├── logging.py, progress.py, db.py, errors.py, verify.py
@@ -49,13 +49,13 @@ musicbrainz-database-setup/
 
 ## CLI surface
 
-- `musicbrainz-db-setup list-dumps [--limit N] [--mirror URL]`
-- `musicbrainz-db-setup download [--date | --latest | --dump-dir] [--modules ...] [--verify/--no-verify]`
-- `musicbrainz-db-setup schema create [--db URL] [--ref GITREF] [--modules ...] [--phase pre|post|all]`
-- `musicbrainz-db-setup import [--db URL] [--dump-dir PATH] [--modules ...]`
-- `musicbrainz-db-setup run [--db URL] [--modules ...] [--date | --latest] [--ref GITREF]` — end-to-end
-- `musicbrainz-db-setup verify [--dump-dir PATH]`
-- `musicbrainz-db-setup clean [--workdir DIR]`
+- `musicbrainz-database-setup list-dumps [--limit N] [--mirror URL]`
+- `musicbrainz-database-setup download [--date | --latest | --dump-dir] [--modules ...] [--verify/--no-verify]`
+- `musicbrainz-database-setup schema create [--db URL] [--ref GITREF] [--modules ...] [--phase pre|post|all]`
+- `musicbrainz-database-setup import [--db URL] [--dump-dir PATH] [--modules ...]`
+- `musicbrainz-database-setup run [--db URL] [--modules ...] [--date | --latest] [--ref GITREF]` — end-to-end
+- `musicbrainz-database-setup verify [--dump-dir PATH]`
+- `musicbrainz-database-setup clean [--workdir DIR]`
 
 ## Schema phases (mirrors `admin/InitDb.pl`)
 
@@ -65,7 +65,7 @@ musicbrainz-database-setup/
 
 **Post-import**: CreatePrimaryKeys → CreateFunctions → CreateIndexes → CreateFKConstraints → CreateConstraints → SetSequences → CreateViews → CreateTriggers → VACUUM ANALYZE.
 
-Bookkeeping: `musicbrainz_db_setup.applied_phases` and `musicbrainz_db_setup.imported_archives` tables make reruns idempotent.
+Bookkeeping: `musicbrainz_database_setup.applied_phases` and `musicbrainz_database_setup.imported_archives` tables make reruns idempotent.
 
 ## Error handling & exit codes
 
@@ -77,8 +77,8 @@ No replication packets. No JSON dumps. No search server (Solr). No MB-Server web
 
 ## Verification
 
-1. `uv sync && uv run musicbrainz-db-setup --help` prints the subcommand tree.
-2. `uv run musicbrainz-db-setup list-dumps` hits the real mirror.
+1. `uv sync && uv run musicbrainz-database-setup --help` prints the subcommand tree.
+2. `uv run musicbrainz-database-setup list-dumps` hits the real mirror.
 3. `uv run pytest -q` — unit tests (offline) pass.
 4. `uv run ruff check src tests` — clean.
-5. Integration path (post-PR): build `tests/docker/Dockerfile` as `musicbrainz-db-setup-test-pg:16`, `uv run musicbrainz-db-setup run --db postgresql://postgres:x@localhost/mb --modules core --latest`.
+5. Integration path (post-PR): build `tests/docker/Dockerfile` as `musicbrainz-database-setup-test-pg:16`, `uv run musicbrainz-database-setup run --db postgresql://postgres:x@localhost/mb --modules core --latest`.

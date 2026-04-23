@@ -8,17 +8,17 @@ from typing import IO
 
 from psycopg import Connection, sql
 
-from musicbrainz_db_setup.db import bulk_session
-from musicbrainz_db_setup.errors import ImportError_
-from musicbrainz_db_setup.importer.archive import (
+from musicbrainz_database_setup.db import bulk_session
+from musicbrainz_database_setup.errors import ImportError_
+from musicbrainz_database_setup.importer.archive import (
     DumpMember,
     iter_mbdump_members,
     open_archive,
     read_metadata_file,
 )
-from musicbrainz_db_setup.importer.tables import schema_for_archive
-from musicbrainz_db_setup.progress import ProgressManager
-from musicbrainz_db_setup.schema.phases import (
+from musicbrainz_database_setup.importer.tables import schema_for_archive
+from musicbrainz_database_setup.progress import ProgressManager
+from musicbrainz_database_setup.schema.phases import (
     BOOKKEEPING_SCHEMA,
     IMPORTED_ARCHIVES_TABLE,
 )

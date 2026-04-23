@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from musicbrainz_db_setup.config import default_sql_cache_dir
+from musicbrainz_database_setup.config import default_sql_cache_dir
 
 
 def sql_cache_path(commit_sha: str, repo_path: str, *, root: Path | None = None) -> Path:
