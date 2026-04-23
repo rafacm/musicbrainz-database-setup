@@ -21,8 +21,13 @@ def connect(db_url: str | None, *, autocommit: bool = False) -> Connection:
 @contextmanager
 def bulk_session(conn: Connection) -> Iterator[Connection]:
     """Session-scoped tuning for bulk COPY. Settings revert on reset."""
+    # psycopg3 refuses to assign `autocommit` (even to the same value) unless
+    # the connection is IDLE. Callers may have opened an implicit transaction
+    # with a prior SELECT probe, so only flip the attribute if it needs to
+    # change.
     prior_autocommit = conn.autocommit
-    conn.autocommit = False
+    if prior_autocommit:
+        conn.autocommit = False
     with conn.cursor() as cur:
         cur.execute("SET LOCAL synchronous_commit = off")
         cur.execute("SET LOCAL maintenance_work_mem = '2GB'")
@@ -31,7 +36,8 @@ def bulk_session(conn: Connection) -> Iterator[Connection]:
     try:
         yield conn
     finally:
-        conn.autocommit = prior_autocommit
+        if prior_autocommit and not conn.autocommit:
+            conn.autocommit = True
 
 
 def role_is_superuser(conn: Connection) -> bool:

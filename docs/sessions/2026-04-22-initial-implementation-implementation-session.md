@@ -320,3 +320,15 @@ Diagnosed: `CreateCollations.sql` ran cleanly (the NOTICE about ICU locale norma
 Grepped upstream `admin/InitDb.pl` and found the exact incantation: `$ENV{'PGOPTIONS'} = '-c search_path=musicbrainz,public'; $ENV{'PGOPTIONS'} .= ' -c client_min_messages=WARNING';`. Both settings matter: `search_path` fixes the collation lookup for every file that assumes it, and `client_min_messages=WARNING` suppresses the NOTICE chatter on `CreateCollations.sql` we saw earlier.
 
 Set `PGOPTIONS="-c search_path=musicbrainz,public -c client_min_messages=WARNING"` in `_psql_env` in `schema/psql.py`. Added an AGENTS.md Tricky-bits bullet and a CHANGELOG Fixed entry under 2026-04-23.
+
+### User
+
+> When testing locally I am getting this error now: [...] Error: Import of mbdump.tar.bz2 failed: can't change 'autocommit' now: connection in transaction status INTRANS
+
+### Assistant
+
+Traced the flow: `import_archive()` calls `ensure_bookkeeping(conn)` (commits → IDLE), then `already_imported(conn, archive_name)` which runs a `SELECT 1 FROM …` probe. That SELECT opens an implicit transaction, so the connection enters INTRANS. Immediately after, `bulk_session(conn)` was assigning `conn.autocommit = False` unconditionally — and psycopg3 refuses to write to the `autocommit` attribute when the connection is not IDLE, even when the assignment is a no-op (False → False). Result: the very first archive failed before any COPY had started, which matches the log (`0 tables`).
+
+Fix is a one-liner in `db.bulk_session()`: only flip autocommit when it needs to change. Same for the restore path on the way out. `connect()` already defaults to `autocommit=False`, so for the normal CLI flow this turns into a pure no-op and the pre-existing transaction from the SELECT probe carries straight into the COPY loop — which is what we want anyway (one transaction per archive).
+
+Updated `CHANGELOG.md` with a new Fixed entry under 2026-04-23 explaining the sequence and the psycopg3 contract that bit us.
