@@ -19,9 +19,11 @@ Bootstrapped the repository with a `uv`-managed Python 3.12 package (`src/musicb
 
 Shared infrastructure: `config.py` (pydantic-settings with `MUSICBRAINZ_DB_SETUP_*` env vars), `errors.py` (typed exceptions with `exit_code` attribute), `logging.py` (rich + file handler), `progress.py` (single `ProgressManager` for nested download/COPY bars), `db.py` (psycopg3 connect + `bulk_session` context manager that SET LOCALs `synchronous_commit=off`, `maintenance_work_mem=2GB`, etc. during COPY).
 
-Docs: `AGENTS.md` with architecture + workflow rules (branching, docs, PR, gh). `CLAUDE.md` is a 2-line pointer to `AGENTS.md`. `docs/README.md` covers the operator-installed custom collation C extensions.
+Docs: `AGENTS.md` with architecture + workflow rules (branching, docs, PR, gh). `CLAUDE.md` is a 2-line pointer to `AGENTS.md`. `docs/README.md` shows how to run against a vanilla `postgres:*` image (including a `docker-compose.yml` snippet).
 
-Tests: 20 unit tests covering manifest ordering, SHA256 parsing, tar member routing, mirror HTML parsing, table→schema mapping. `tests/docker/Dockerfile` layers `musicbrainz_collate`/`musicbrainz_unaccent` on top of `postgres:16` for future testcontainers integration.
+Tests: 20 unit tests covering manifest ordering, SHA256 parsing, tar member routing, mirror HTML parsing, table→schema mapping.
+
+**Note (2026-04-23):** The plan originally called for a custom Dockerfile layering `musicbrainz_collate` / `musicbrainz_unaccent` C extensions on top of `postgres:16`. Inspection of current upstream (`metabrainz/musicbrainz-server` on master) revealed that the `postgresql-extensions/` directory has been removed, `CreateCollations.sql` is pure ICU (`CREATE COLLATION ... provider = icu`), and `musicbrainz_unaccent` is now a SQL function in `Extensions.sql` — so the custom Dockerfile isn't needed and was deleted. See the `2026-04-23` section of `CHANGELOG.md`.
 
 ## Key parameters
 
@@ -47,10 +49,9 @@ Tests: 20 unit tests covering manifest ordering, SHA256 parsing, tar member rout
 Integration path (manual, after this PR lands):
 
 ```bash
-docker build -t musicbrainz-db-setup-test-pg:16 tests/docker/
-docker run --rm -e POSTGRES_PASSWORD=x -p 5432:5432 musicbrainz-db-setup-test-pg:16
+docker run --rm -e POSTGRES_PASSWORD=x -p 5432:5432 postgres:17-alpine
 uv run musicbrainz-db-setup run \
-    --db postgresql://postgres:x@localhost:5432/mb \
+    --db postgresql://postgres:x@localhost:5432/postgres \
     --modules core --latest
 ```
 
@@ -73,7 +74,6 @@ uv run musicbrainz-db-setup run \
 | `src/musicbrainz_db_setup/schema/{phases,extensions,orchestrator}.py` | Phase enum, `CREATE EXTENSION` preflight, ordered SQL runner with bookkeeping. |
 | `src/musicbrainz_db_setup/importer/{archive,tables,copy}.py` | Streaming tar iterator, table→schema routing, `COPY FROM STDIN` loop. |
 | `tests/unit/test_{manifest,checksums,index,archive,tables}.py` | 20 offline unit tests. |
-| `tests/docker/Dockerfile` | `postgres:16` + `musicbrainz_collate`/`musicbrainz_unaccent` built from source. |
 | `AGENTS.md` | Architecture + workflow rules (branching, docs, PR, gh). |
 | `CLAUDE.md` | Two-line pointer to `AGENTS.md`. |
 | `README.md` | Quick-start and config reference. |

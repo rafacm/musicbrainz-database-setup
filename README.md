@@ -14,7 +14,7 @@ uv run musicbrainz-db-setup run \
     --latest
 ```
 
-See [docs/README.md](docs/README.md) for the PostgreSQL server prerequisites — the fastest path is the Docker image the repo ships in `tests/docker/`, which bakes in the custom `musicbrainz_collate` / `musicbrainz_unaccent` extensions the tool needs to create collations.
+See [docs/README.md](docs/README.md) for the PostgreSQL server prerequisites. Any official `postgres:*` image (including `postgres:17-alpine`) works out of the box — the tool only needs `cube`, `earthdistance`, and `unaccent` from `postgresql-contrib` (bundled with every official image), plus an ICU-enabled build (default since PG 16).
 
 ## Commands
 
