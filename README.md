@@ -40,7 +40,26 @@ The tool also works against managed PostgreSQL (RDS, Cloud SQL, etc.) as long as
     uv run musicbrainz-database-setup run --db postgresql://postgres:postgres@localhost:5432/postgres --modules core --latest
     ```
 
-If neither `--latest` nor `--date YYYYMMDD-HHMMSS` is passed, `run` interactively prompts for a dump directory from the mirror.
+    If neither `--latest` nor `--date YYYYMMDD-HHMMSS` is passed, `run` interactively prompts for a dump directory from the mirror.
+
+4. **Poke around the imported data.** Open a psql session against the running container and run a couple of sanity queries:
+
+    ```bash
+    docker exec -it musicbrainz-postgres psql -U postgres -d postgres
+    ```
+
+    ```sql
+    -- Row counts of the top-level entities
+    SELECT
+      (SELECT count(*) FROM musicbrainz.artist)    AS artists,
+      (SELECT count(*) FROM musicbrainz.release)   AS releases,
+      (SELECT count(*) FROM musicbrainz.recording) AS recordings;
+
+    -- Look up an artist by name (gid is the MusicBrainz ID / MBID)
+    SELECT gid, name, sort_name FROM musicbrainz.artist WHERE name = 'The Beatles';
+    ```
+
+    For the full entity model and table-by-table reference, see the [MusicBrainz Database](https://musicbrainz.org/doc/MusicBrainz_Database) and [Database Schema](https://musicbrainz.org/doc/MusicBrainz_Database/Schema) docs.
 
 ## Modules
 
