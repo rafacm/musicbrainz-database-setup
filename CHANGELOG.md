@@ -16,6 +16,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## 2026-04-23
 
+### Added
+
+- Indeterminate spinner + elapsed-time ticker for each `admin/sql/*.sql` file, so long-running phases (`CreateIndexes.sql`, `CreateFKConstraints.sql`, …) don't look frozen during real-mirror imports. `schema/psql.run_sql_file()` registers a per-file task with `ProgressManager` around the `psql` subprocess and removes it when the process returns. `cli.schema_create` and `cli.run` now wrap their whole body in `progress_session()` so the live display is active across the pre-import and post-import phases (not just the COPY loop). `TimeElapsedColumn` added to the shared `Progress` column set. A real %-progress bar would need to poll `pg_stat_progress_create_index` / `pg_stat_progress_vacuum` on a second connection — deferred to a follow-up PR.
+
 ### Removed
 
 - Deleted `tests/docker/Dockerfile`. Upstream `musicbrainz-server` removed the `postgresql-extensions/` directory — `CreateCollations.sql` is now a plain ICU collation (`CREATE COLLATION ... provider = icu`) and `musicbrainz_unaccent` is a SQL function defined inline in `Extensions.sql`. No custom PG build is required; any official `postgres:*` image works (including `postgres:17-alpine`).

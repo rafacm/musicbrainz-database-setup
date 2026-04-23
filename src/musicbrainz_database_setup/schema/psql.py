@@ -19,6 +19,7 @@ from pathlib import Path
 from psycopg import Connection
 
 from musicbrainz_database_setup.errors import PrerequisiteMissing, SchemaError
+from musicbrainz_database_setup.progress import ProgressManager
 
 log = logging.getLogger(__name__)
 
@@ -83,13 +84,22 @@ def run_sql_file(conn: Connection, file_path: Path) -> None:
     ]
     env = _psql_env(conn)
     log.debug("Invoking %s", " ".join(cmd))
-    result = subprocess.run(
-        cmd,
-        env=env,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    # Indeterminate spinner + elapsed-time ticker so long-running files
+    # (CreateIndexes.sql, CreateFKConstraints.sql, …) don't look frozen.
+    # A real % bar would require polling pg_stat_progress_* on a second
+    # connection — see README "What's coming".
+    pm = ProgressManager.instance()
+    task = pm.add_task(f"psql {file_path.name}", total=None)
+    try:
+        result = subprocess.run(
+            cmd,
+            env=env,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    finally:
+        pm.remove_task(task)
     if result.stdout.strip():
         log.debug("psql stdout: %s", result.stdout.rstrip())
     if result.returncode != 0:

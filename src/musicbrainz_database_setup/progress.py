@@ -13,6 +13,7 @@ from rich.progress import (
     SpinnerColumn,
     TaskID,
     TextColumn,
+    TimeElapsedColumn,
     TimeRemainingColumn,
     TransferSpeedColumn,
 )
@@ -38,6 +39,7 @@ class ProgressManager:
             MofNCompleteColumn(),
             DownloadColumn(binary_units=True),
             TransferSpeedColumn(),
+            TimeElapsedColumn(),
             TimeRemainingColumn(),
             TextColumn("{task.fields[note]}", style="dim"),
             console=get_console(),
