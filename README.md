@@ -1,6 +1,6 @@
-# musicbrainz-database-setup
+# MusicBrainz Data Dumps to PostgreSQL, in one beat
 
-`musicbrainz-database-setup` is a Python CLI that sets up a full MusicBrainz database in a PostgreSQL instance you control. It downloads the official dumps from the MetaBrainz mirror, creates the schema by running the upstream `admin/sql/*.sql` files against your database, and streams the TSVs inside the archives directly into `COPY FROM STDIN` — no disk extraction, with resumable downloads, SHA256 verification, and per-table progress bars.
+`musicbrainz-database-setup` is a Python CLI that sets up a full [MusicBrainz](https://musicbrainz.org/) database in a PostgreSQL instance you control. It downloads the official dumps from the MetaBrainz mirror, creates the schema by running the upstream `admin/sql/*.sql` files against your database, and streams the TSVs inside the archives directly into `COPY FROM STDIN` — no disk extraction, with resumable downloads, SHA256 verification, and per-table progress bars.
 
 The steps this tool automates are otherwise scattered across the [MusicBrainz wiki](https://wiki.musicbrainz.org/MusicBrainz_Database/Download), the `musicbrainz-server` [admin Perl scripts](https://github.com/metabrainz/musicbrainz-server/tree/master/admin), and the [`metabrainz/musicbrainz-docker`](https://github.com/metabrainz/musicbrainz-docker) stack. This project consolidates them into a single command you can point at any PostgreSQL connection.
 
