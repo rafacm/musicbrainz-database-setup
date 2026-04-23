@@ -218,3 +218,43 @@ Rewrote `README.md` and deleted `docs/README.md`:
 - **Modules table** — archive filename, target Postgres schema, contents, and licence (CC0 vs CC BY-NC-SA) for all ten modules (`core`, `derived`, `editor`, `edit`, `cover-art`, `event-art`, `stats`, `documentation`, `wikidocs`, `cdstubs`).
 - **References** — full list at the bottom linking to MusicBrainz wiki pages (Download, Schema, Entity, JSON Data Dumps), `musicbrainz-server/admin/sql/` and `admin/`, `metabrainz/musicbrainz-docker`, `acoustid/mbslave` (related Python tool), `acoustid/mbdata` (SQLAlchemy models), and the official `postgres` Docker image.
 - **Deleted `docs/README.md`** — its content (Docker flow, managed PG note, disk sizing) is absorbed into the main README. Verified no code references remained (the error-message pointer was already removed in the extensions-refactor commit). CHANGELOG entry added under 2026-04-23.
+
+### User
+
+> In the Quick Start, what does "mbdb" stand for in "docker run -d --name mbdb"? Is this the name of the database?
+
+### Assistant
+
+Clarified: `--name mbdb` was the Docker *container* name (for `docker exec` / `docker stop`), not the PG database name. The database used by the tool is `postgres` — the default one created by the image's entrypoint on first boot — visible as the last path segment of the connection string `postgresql://postgres:postgres@localhost:5432/postgres`. Renamed the container to `musicbrainz-postgres` for clarity and added two inline comments in the Quick Start code block: one explaining what `--name` does, one annotating the connection string's `user:password@host:port/database` structure.
+
+### User
+
+> Why do we need the "\" in the Docker commands?
+
+### Assistant
+
+Answered directly (no code change): `\` at end of line is bash's line-continuation character — purely cosmetic for splitting a long `docker run` across multiple lines in the docs. Caveated that it's bash/zsh only (PowerShell uses backticks, cmd.exe uses carets) which is fine because Windows isn't a supported target per AGENTS.md v1 non-goals.
+
+### User
+
+> In the Modules section, let's add hyperlinks to the License. And let's also add a link at the end of the section where these modules are defined in the musicbrainz website.
+
+### Assistant
+
+Turned the Licence column into hyperlinks: CC0 rows → https://creativecommons.org/publicdomain/zero/1.0/ and the non-CC0 rows became "CC BY-NC-SA 3.0" (specific version — MetaBrainz uses 3.0, which differs from 4.0's ShareAlike clause) → https://creativecommons.org/licenses/by-nc-sa/3.0/. Added a trailing line after the table linking to https://wiki.musicbrainz.org/MusicBrainz_Database/Download as the canonical enumeration of the archives with their contents, licensing, and release cadence.
+
+### User
+
+> What about the lincense of this project? We've defaulted to MIT. What other options do we have that do not go against MusicBrainz ethos and licenses?
+
+### Assistant
+
+Grounded the answer with `gh api` checks against the upstream repos: `mbdata` MIT, `mbslave` MIT (confirmed via raw LICENSE fetch — I'd initially misremembered it as BSD-2), `musicbrainz-docker` MIT, and `musicbrainz-server` GPL-2.0-or-later (confirmed from its README since the GitHub API returned `NOASSERTION`). Presented a comparison table (MIT, Apache 2.0, BSD 2-Clause, GPL-2.0-or-later, AGPL-3.0) with one-line tradeoffs each, and framed the key insight: every Python/Docker tool *around* the server is MIT; only the server itself is GPL. MIT doesn't conflict with MB's ethos — it's the ecosystem convention for the tooling layer. Recommended staying on MIT; called out GPL-2.0-or-later as the literal ethos-mirror option if desired.
+
+### User
+
+> Let's go with the MIT license then! Let's add the corresponding file for the license.
+
+### Assistant
+
+Added `LICENSE` at the repo root with the standard MIT text (© 2026 Rafael Cordones). Updated `pyproject.toml` from `license = { text = "MIT" }` to `license = { file = "LICENSE" }` so the declared license references the actual file. Ran `uv sync --extra dev` (rebuilt successfully), `uv run pytest -q` (20/20), `uv run ruff check src tests` (clean).

@@ -31,3 +31,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Removed
 
 - Deleted `docs/README.md`. Its content (PG requirements, docker-compose snippet, managed-PG note, disk sizing) folded into the root `README.md` where it belongs alongside the Quick start — one README is clearer than two for prerequisites.
+
+### Added
+
+- `LICENSE` file at the repo root (MIT, © 2026 Rafael Cordones). Matches the existing `pyproject.toml` declaration and brings this project in line with the rest of the MB tooling layer (`mbdata`, `mbslave`, `musicbrainz-docker` are all MIT). `pyproject.toml` now points at the file via `license = { file = "LICENSE" }`.
