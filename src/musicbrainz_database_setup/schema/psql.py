@@ -35,11 +35,19 @@ def ensure_psql_available() -> None:
         )
 
 
+# Startup options applied to every psql connection. Mirrors what upstream
+# admin/InitDb.pl does: sets search_path so unqualified references to the
+# `musicbrainz` collation (and others) resolve without needing every file to
+# schema-qualify them, and downgrades NOTICE chatter to keep the output
+# focused on actual warnings.
+_PGOPTIONS = "-c search_path=musicbrainz,public -c client_min_messages=WARNING"
+
+
 def _psql_env(conn: Connection) -> dict[str, str]:
     """Extract libpq env vars from a psycopg connection.
 
-    We pass credentials to ``psql`` via environment variables (not
-    command-line flags) so the password never shows up in ``ps``.
+    Credentials go via environment variables (not command-line flags) so the
+    password never shows up in ``ps``.
     """
     info = conn.info
     env = os.environ.copy()
@@ -53,6 +61,7 @@ def _psql_env(conn: Connection) -> dict[str, str]:
         env["PGDATABASE"] = info.dbname
     if info.password:
         env["PGPASSWORD"] = info.password
+    env["PGOPTIONS"] = _PGOPTIONS
     return env
 
 
