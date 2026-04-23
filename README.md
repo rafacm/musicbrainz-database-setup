@@ -126,18 +126,29 @@ uv run mypy src
 
 ## References
 
-This tool is built on the following primary sources:
+This tool is built on the following primary sources.
 
-- **MusicBrainz wiki — Database / Download** — https://wiki.musicbrainz.org/MusicBrainz_Database/Download — mirror layout, dump cadence, checksum/signature files.
-- **MusicBrainz wiki — Database / Schema** — https://wiki.musicbrainz.org/MusicBrainz_Database/Schema — PG version and extension requirements.
-- **MusicBrainz Entity** — https://musicbrainz.org/doc/MusicBrainz_Entity — the entity model and which entities are core vs derived.
-- **MusicBrainz wiki — Development / JSON Data Dumps** — https://musicbrainz.org/doc/Development/JSON_Data_Dumps — JSON dump format (out of scope for this tool).
-- **`musicbrainz-server/admin/sql/`** — https://github.com/metabrainz/musicbrainz-server/tree/master/admin/sql — the canonical DDL this tool applies (`Extensions.sql`, `CreateCollations.sql`, `CreateTypes.sql`, `CreateTables.sql`, …, `CreateTriggers.sql`).
-- **`musicbrainz-server/admin/`** — https://github.com/metabrainz/musicbrainz-server/tree/master/admin — `InitDb.pl` (authoritative DDL phase order) and `MBImport.pl` (reference for the COPY loop).
-- **`metabrainz/musicbrainz-docker`** — https://github.com/metabrainz/musicbrainz-docker — upstream's official Docker-compose stack. A useful reference for how upstream provisions Postgres, but not a dependency of this tool.
-- **`acoustid/mbslave`** — https://github.com/acoustid/mbslave — Lukas Lalinsky's Python tool that handles both initial import and ongoing replication.
-- **`acoustid/mbdata`** — https://github.com/acoustid/mbdata — SQLAlchemy models for the MusicBrainz schema. Complementary to this tool.
-- **`postgres` Docker image** — https://hub.docker.com/_/postgres — the official image used in the Quick start.
+### MusicBrainz documentation
+
+- [**Database / Download**](https://wiki.musicbrainz.org/MusicBrainz_Database/Download): mirror layout, dump cadence, checksum/signature files.
+- [**Database / Schema**](https://wiki.musicbrainz.org/MusicBrainz_Database/Schema): PG version and extension requirements.
+- [**MusicBrainz Entity**](https://musicbrainz.org/doc/MusicBrainz_Entity): the entity model and which entities are core vs derived.
+- [**Development / JSON Data Dumps**](https://musicbrainz.org/doc/Development/JSON_Data_Dumps): JSON dump format (out of scope for this tool).
+
+### Upstream code
+
+- [**`metabrainz/musicbrainz-server/admin/sql/`**](https://github.com/metabrainz/musicbrainz-server/tree/master/admin/sql): the canonical DDL this tool applies (`Extensions.sql`, `CreateCollations.sql`, `CreateTypes.sql`, `CreateTables.sql`, …, `CreateTriggers.sql`).
+- [**`metabrainz/musicbrainz-server/admin/`**](https://github.com/metabrainz/musicbrainz-server/tree/master/admin): `InitDb.pl` (authoritative DDL phase order) and `MBImport.pl` (reference for the COPY loop).
+- [**`metabrainz/musicbrainz-docker`**](https://github.com/metabrainz/musicbrainz-docker): upstream's official Docker-compose stack. A useful reference for how upstream provisions Postgres, but not a dependency of this tool.
+
+### Related Python tools
+
+- [**`acoustid/mbslave`**](https://github.com/acoustid/mbslave): Lukas Lalinsky's Python tool that handles both initial import and ongoing replication.
+- [**`acoustid/mbdata`**](https://github.com/acoustid/mbdata): SQLAlchemy models for the MusicBrainz schema. Complementary to this tool.
+
+### PostgreSQL
+
+- [**`postgres` Docker image**](https://hub.docker.com/_/postgres): the official image used in the Quick start.
 
 ## License
 
