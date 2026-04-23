@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Download MusicBrainz database dumps and import them into a PostgreSQL instance."
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "MIT" }
+license = { file = "LICENSE" }
 authors = [{ name = "Rafael Cordones" }]
 dependencies = [
     "typer>=0.12",
