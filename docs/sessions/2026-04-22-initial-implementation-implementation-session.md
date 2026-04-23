@@ -308,3 +308,15 @@ Implemented:
 - `CHANGELOG.md`: 2026-04-23 `Added` (Status section) + `Fixed` (psql flow, dropped `ensure_extensions`).
 
 Ran `uv run pytest -q` (20/20), `uv run ruff check src tests` (clean), `uv run musicbrainz-database-setup --help` (renders).
+
+### User
+
+> When testing locally I got this error: [...] Error: psql failed applying CreateTables.sql (exit 3): psql:.../CreateTables.sql:434: ERROR: collation "musicbrainz" for encoding "UTF8" does not exist
+
+### Assistant
+
+Diagnosed: `CreateCollations.sql` ran cleanly (the NOTICE about ICU locale normalisation is cosmetic) and created the `musicbrainz` collation — in the `musicbrainz` schema, because that file starts with `SET search_path = musicbrainz, public;`. But `CreateTables.sql` (line 434) references `COLLATE musicbrainz` without schema qualification, and *doesn't* set its own search_path — so our psql invocation started with the server-default search_path (`"$user", public`), which doesn't include `musicbrainz`, so the collation lookup failed.
+
+Grepped upstream `admin/InitDb.pl` and found the exact incantation: `$ENV{'PGOPTIONS'} = '-c search_path=musicbrainz,public'; $ENV{'PGOPTIONS'} .= ' -c client_min_messages=WARNING';`. Both settings matter: `search_path` fixes the collation lookup for every file that assumes it, and `client_min_messages=WARNING` suppresses the NOTICE chatter on `CreateCollations.sql` we saw earlier.
+
+Set `PGOPTIONS="-c search_path=musicbrainz,public -c client_min_messages=WARNING"` in `_psql_env` in `schema/psql.py`. Added an AGENTS.md Tricky-bits bullet and a CHANGELOG Fixed entry under 2026-04-23.
