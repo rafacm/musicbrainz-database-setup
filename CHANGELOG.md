@@ -13,3 +13,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Changed
 
 - Renamed `docs/PREREQUISITES.md` → `docs/README.md` and rewrote the "PostgreSQL server" section to lead with the Docker image shipped in `tests/docker/` (build, `docker run`, use the entrypoint-created `postgres` superuser, or optionally create a dedicated `mb` superuser). The manual "compile extensions on the PG host" instructions are preserved as a secondary "Pointing at a pre-existing PostgreSQL server" sub-section.
+
+## 2026-04-23
+
+### Removed
+
+- Deleted `tests/docker/Dockerfile`. Upstream `musicbrainz-server` removed the `postgresql-extensions/` directory — `CreateCollations.sql` is now a plain ICU collation (`CREATE COLLATION ... provider = icu`) and `musicbrainz_unaccent` is a SQL function defined inline in `Extensions.sql`. No custom PG build is required; any official `postgres:*` image works (including `postgres:17-alpine`).
+- Removed `REQUIRED_COLLATION_EXTENSIONS` from `schema/phases.py` and the matching preflight check in `schema/extensions.py`.
+
+### Changed
+
+- `schema/extensions.preflight()` now probes `pg_collation` for ICU support (via `collprovider = 'i'`) instead of looking for `musicbrainz_collate` / `musicbrainz_unaccent` extensions.
+- Rewrote `docs/README.md` around vanilla `postgres:*` images — including an `image: postgres:17-alpine` snippet for projects that already have a docker-compose.yml. Added a note on managed Postgres (RDS, Cloud SQL).

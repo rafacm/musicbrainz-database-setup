@@ -11,11 +11,13 @@ class Phase(StrEnum):
 
 REQUIRED_EXTENSIONS = ("cube", "earthdistance", "unaccent")
 
-# Collations created by admin/sql/CreateCollations.sql depend on these
-# operator-installed C extensions. We probe pg_available_extensions before
-# running the SQL so the error points at docs/README.md, not at a cryptic
-# CREATE COLLATION failure.
-REQUIRED_COLLATION_EXTENSIONS = ("musicbrainz_collate", "musicbrainz_unaccent")
+# Note: historical versions of musicbrainz-server shipped a
+# postgresql-extensions/ directory with C extensions named
+# musicbrainz_collate / musicbrainz_unaccent. Upstream removed those —
+# CreateCollations.sql now uses plain `provider = icu`, and
+# musicbrainz_unaccent is a SQL function defined in Extensions.sql.
+# So we only need the stock contrib extensions above plus an ICU-enabled
+# server, which every official postgres:* image provides.
 
 BOOKKEEPING_SCHEMA = "musicbrainz_db_setup"
 APPLIED_PHASES_TABLE = "applied_phases"

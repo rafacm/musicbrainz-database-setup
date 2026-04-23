@@ -43,7 +43,7 @@ The phase order mirrors upstream `admin/InitDb.pl`. If you change the order, che
 ## Tricky bits
 
 - `tarfile.open(mode="r|bz2")` is **streaming only**. `extractfile(info)` returns a file-like that's valid only until the next `next()` call. `iter_mbdump_members` yields these one at a time; callers MUST fully consume each member before advancing.
-- `admin/sql/CreateCollations.sql` requires the operator-installed C extensions `musicbrainz_collate` and `musicbrainz_unaccent`. `schema/extensions.preflight()` checks `pg_available_extensions` and aborts with a pointer to `docs/README.md` rather than letting the raw SQL fail cryptically.
+- `admin/sql/CreateCollations.sql` is pure ICU (`CREATE COLLATION ... provider = icu`) — no custom C extension. `admin/sql/Extensions.sql` defines `musicbrainz_unaccent` as a SQL function wrapping the stock `unaccent()`. `schema/extensions.preflight()` therefore only checks that `cube`/`earthdistance`/`unaccent` are available and that the server was built with ICU (via a `pg_collation` probe). Every official `postgres:*` image since PG 16 qualifies; no custom Dockerfile is required.
 - Bulk session tuning (`SET LOCAL synchronous_commit=off`, etc.) is per-transaction. `db.bulk_session()` is a context manager — use it around the COPY loop, not at connect time.
 - When adding a new module, update all four of: `MODULE_SUBDIR`, `MODULE_SCHEMA`, `MODULE_ARCHIVE` in `sql/manifest.py`, and `ALL_MODULES` in `config.py`.
 

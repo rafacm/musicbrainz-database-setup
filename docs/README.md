@@ -4,15 +4,13 @@ Before running `musicbrainz-db-setup`, the target PostgreSQL server and the mach
 
 ## PostgreSQL server
 
-The tool needs a PostgreSQL 16+ server with three stock extensions (`cube`, `earthdistance`, `unaccent`) and two MusicBrainz-specific C extensions (`musicbrainz_collate`, `musicbrainz_unaccent`). The repository ships a Docker image that has all of this baked in on top of `postgres:16` — that's the fastest path to a working server.
+Any official `postgres:*` image from Docker Hub works — including `postgres:17-alpine`, `postgres:17`, `postgres:16-alpine`, `postgres:16`. The tool doesn't need a custom image or any extension-build step:
 
-### Build the image
+- `cube`, `earthdistance`, and `unaccent` ship in `postgresql-contrib`, which is bundled with every official image. The tool runs `CREATE EXTENSION IF NOT EXISTS` itself.
+- The `musicbrainz` collation used by the upstream schema is now a plain ICU collation (`CREATE COLLATION ... provider = icu`). Every official `postgres:*` image since PG 16 is built with `--with-icu`.
+- `musicbrainz_unaccent` is a SQL function defined inline by `Extensions.sql`, not an extension.
 
-```bash
-docker build -t musicbrainz-db-setup-pg:16 tests/docker/
-```
-
-### Start the container
+### Starting a standalone container
 
 ```bash
 docker run -d \
@@ -20,10 +18,10 @@ docker run -d \
     -e POSTGRES_PASSWORD=postgres \
     -p 5432:5432 \
     -v musicbrainz-pg-data:/var/lib/postgresql/data \
-    musicbrainz-db-setup-pg:16
+    postgres:17-alpine
 ```
 
-The `postgres:16` base image's entrypoint creates a `postgres` superuser from `POSTGRES_PASSWORD` on first boot, so the container is immediately usable with `musicbrainz-db-setup`:
+The entrypoint creates a `postgres` superuser from `POSTGRES_PASSWORD` on first boot, which is immediately usable:
 
 ```bash
 uv run musicbrainz-db-setup run \
@@ -31,9 +29,28 @@ uv run musicbrainz-db-setup run \
     --modules core --latest
 ```
 
-### Create a dedicated superuser (optional)
+### Using an existing docker-compose.yml
 
-If you'd rather not use the default `postgres` role, create a dedicated superuser and database:
+If your project already declares a Postgres service, no changes are required. Point `--db` at it and go:
+
+```yaml
+# your docker-compose.yml
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+```
+
+```bash
+uv run musicbrainz-db-setup run --db "$DB_URL" --modules core --latest
+```
+
+### Creating a dedicated superuser (optional)
+
+If you'd rather not use the default `postgres` role:
 
 ```bash
 docker exec -i musicbrainz-pg psql -U postgres <<'SQL'
@@ -42,32 +59,28 @@ CREATE DATABASE musicbrainz OWNER mb;
 SQL
 ```
 
-Then point the tool at the new role:
-
 ```bash
 uv run musicbrainz-db-setup run \
     --db postgresql://mb:mb@localhost:5432/musicbrainz \
     --modules core --latest
 ```
 
-### Pointing at a pre-existing PostgreSQL server
+### Pointing at a pre-existing bare-metal PostgreSQL server
 
-If you're running against an existing server rather than the image above, the host must provide:
+The host PG install must provide:
 
-- **PostgreSQL 16 or later** — MusicBrainz's upstream schema assumes PG 16+.
+- **PostgreSQL 16 or later**, built with `--with-icu` (default on every mainstream distro package).
 - **`postgresql-contrib`** (Debian/Ubuntu) or your distro's equivalent — supplies `cube`, `earthdistance`, and `unaccent`.
-- **The MusicBrainz custom C extensions**, compiled against the server's major version. On the PG server host:
+- **A role with `SUPERUSER`** (or at minimum: `CREATEDB`, `CREATEROLE`, `pg_read_server_files` membership, plus the right to `CREATE EXTENSION`).
 
-  ```bash
-  sudo apt-get install postgresql-server-dev-16 build-essential
-  git clone https://github.com/metabrainz/musicbrainz-server.git
-  cd musicbrainz-server/postgresql-extensions
-  make && sudo make install
-  ```
+The tool pre-flights `pg_available_extensions` at startup and aborts with a clear pointer back here if anything is missing.
 
-  The tool calls `SELECT name FROM pg_available_extensions` at startup and aborts with a pointer back here if either extension is missing.
+### What about managed Postgres (RDS, Cloud SQL)?
 
-- **A role with `SUPERUSER`** (or at minimum: `CREATEDB`, `CREATEROLE`, membership in `pg_read_server_files`, plus the right to `CREATE EXTENSION`). The simplest path is the default `postgres` superuser.
+RDS, Cloud SQL, and other managed providers typically include `cube`, `earthdistance`, and `unaccent` and are built with ICU, so the pre-flight should pass. Caveats:
+
+- The role you connect as must be allowed to `CREATE EXTENSION` — on RDS the `rds_superuser` role qualifies; on Cloud SQL the `postgres` role does.
+- `COPY FROM STDIN` is supported on every managed PG. No change needed.
 
 ## Disk and network
 

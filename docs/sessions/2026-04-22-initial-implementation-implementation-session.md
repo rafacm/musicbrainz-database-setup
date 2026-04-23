@@ -107,3 +107,56 @@ Sandbox declined to create a public GitHub repo or push to one on my behalf (pub
 ### Assistant
 
 Renamed `docs/PREREQUISITES.md` → `docs/README.md` via `git mv` (preserves rename in diff) and rewrote the "PostgreSQL server" section to lead with the Docker image shipped in `tests/docker/`: build command, `docker run` with a named volume, usage of the entrypoint-provided `postgres` superuser, and an optional block for creating a dedicated `mb` superuser + database. Kept the "Pointing at a pre-existing PostgreSQL server" path as a secondary sub-section for operators running their own PG host. Updated all references to the old filename in `README.md`, `AGENTS.md`, `schema/extensions.py` (error message), `schema/phases.py` (comment), and the plan/feature/session docs. Added a `### Changed` entry under the existing `2026-04-22` section in `CHANGELOG.md`.
+
+### User
+
+> Is there a way to install the postgres extensions without a custom Dockerfile?
+
+### Assistant
+
+Explained that historically the two MusicBrainz-specific extensions (`musicbrainz_collate`, `musicbrainz_unaccent`) were custom C code that had to be compiled against the target PG major version, so the options were limited to (a) pre-built image on GHCR, (b) copy-pasteable `RUN` snippet, or (c) build-from-source on the host. Recommended option (a).
+
+### User
+
+> Having a custom Dockerfile adds friction for projects that already have their own Docker file for Postgres
+
+### Assistant
+
+Acknowledged the friction concern. Still assumed compiled C extensions were needed and proposed matching a downstream project's base image (e.g. publishing `ghcr.io/rafacm/musicbrainz-db-setup-pg:17-alpine` to match `image: postgres:17-alpine`).
+
+### User
+
+> In a project were I want to use this tool I already have a docker-compose.yml file with image: postgres:17-alpine
+
+### Assistant
+
+Proposed publishing to GHCR and letting them swap their `image:` line. Flagged that the current Dockerfile is `postgres:16` (Debian) and an Alpine variant would be needed.
+
+### User
+
+> Let's look into publishing the image in a second step. Let's focus now in having the Dockerfile that can create the image and I can build it locally. The image should have a better name though. BTW, there's already a MusiBrainz Docker-related project here https://github.com/metabrainz/musicbrainz-docker
+
+### User
+
+> But it looks very complicated to set up
+
+### Assistant
+
+Looked at upstream `metabrainz/musicbrainz-docker`'s `build/postgres/Dockerfile` and discovered it only compiles `pg_amqp` (for MB-Server's event bus, unrelated to the DB). Then fetched upstream `admin/sql/CreateCollations.sql` and grepped `Extensions.sql` — and found the whole premise was wrong:
+
+- `CreateCollations.sql` is now pure ICU: `CREATE COLLATION musicbrainz (provider = icu, locale = '@colCaseFirst=lower;colNumeric=yes')`. No custom extension.
+- `musicbrainz_unaccent` is defined as a SQL `IMMUTABLE` wrapper function around `unaccent()` inline in `Extensions.sql`, not as an extension.
+- Upstream removed `musicbrainz-server/postgresql-extensions/` entirely (GitHub returns 404).
+
+So we don't need a custom Dockerfile at all. Any official `postgres:*` image (including `postgres:17-alpine`, which the user is already using) works out of the box because:
+- `cube`/`earthdistance`/`unaccent` ship in `postgresql-contrib`, bundled with every official image.
+- Every official `postgres:*` image since PG 16 is built with `--with-icu`.
+
+Simplified accordingly:
+- Deleted `tests/docker/Dockerfile` (and the now-empty `tests/docker/` directory).
+- Removed `REQUIRED_COLLATION_EXTENSIONS` from `schema/phases.py`.
+- Rewrote `schema/extensions.preflight()` to check only the stock contrib extensions plus ICU support (via a `SELECT count(*) FROM pg_collation WHERE collprovider = 'i'` probe).
+- Rewrote `docs/README.md` to drop the Docker-build flow and instead show `docker run postgres:17-alpine` plus a `docker-compose.yml` snippet for projects that already declare a Postgres service. Added a section on managed Postgres (RDS, Cloud SQL).
+- Updated `README.md` and `AGENTS.md` references; added a 2026-04-23 `Removed` + `Changed` entry to `CHANGELOG.md`.
+
+Ran `uv run pytest -q` (20/20 pass) and `uv run ruff check src tests` (clean).
