@@ -4,8 +4,8 @@ import logging
 
 from psycopg import Connection, sql
 
-from musicbrainz_db_setup.errors import PrerequisiteMissing
-from musicbrainz_db_setup.schema.phases import REQUIRED_EXTENSIONS
+from musicbrainz_database_setup.errors import PrerequisiteMissing
+from musicbrainz_database_setup.schema.phases import REQUIRED_EXTENSIONS
 
 log = logging.getLogger(__name__)
 

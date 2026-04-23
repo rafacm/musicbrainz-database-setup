@@ -7,7 +7,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-from musicbrainz_db_setup.errors import ChecksumError
+from musicbrainz_database_setup.errors import ChecksumError
 
 _LINE_RE = re.compile(r"^([0-9a-fA-F]{32,128})\s+\*?(\S+)\s*$")
 

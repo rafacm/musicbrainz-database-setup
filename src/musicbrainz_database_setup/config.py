@@ -30,11 +30,11 @@ def _xdg_cache_home() -> Path:
 
 
 def default_workdir() -> Path:
-    return _xdg_cache_home() / "musicbrainz-db-setup" / "dumps"
+    return _xdg_cache_home() / "musicbrainz-database-setup" / "dumps"
 
 
 def default_sql_cache_dir() -> Path:
-    return _xdg_cache_home() / "musicbrainz-db-setup" / "sql"
+    return _xdg_cache_home() / "musicbrainz-database-setup" / "sql"
 
 
 class Settings(BaseSettings):
@@ -44,7 +44,7 @@ class Settings(BaseSettings):
     """
 
     model_config = SettingsConfigDict(
-        env_prefix="MUSICBRAINZ_DB_SETUP_",
+        env_prefix="MUSICBRAINZ_DATABASE_SETUP_",
         env_file=".env",
         extra="ignore",
     )

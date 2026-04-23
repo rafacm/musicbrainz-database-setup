@@ -4,7 +4,7 @@ Guidance for AI coding assistants (Claude Code, etc.) working on this repository
 
 ## What this project does
 
-Python CLI (`musicbrainz-db-setup`) that points at an existing PostgreSQL 16+ instance and performs a full, one-shot MusicBrainz setup: downloads the `.tar.bz2` dump archives from the MetaBrainz mirror, creates the MusicBrainz schema by fetching `admin/sql/*.sql` from `metabrainz/musicbrainz-server` at a configurable git ref, and streams the TSVs inside the archives directly into `COPY FROM STDIN`.
+Python CLI (`musicbrainz-database-setup`) that points at an existing PostgreSQL 16+ instance and performs a full, one-shot MusicBrainz setup: downloads the `.tar.bz2` dump archives from the MetaBrainz mirror, creates the MusicBrainz schema by fetching `admin/sql/*.sql` from `metabrainz/musicbrainz-server` at a configurable git ref, and streams the TSVs inside the archives directly into `COPY FROM STDIN`.
 
 Replication packets, JSON dumps, search-server integration, and any Docker-compose wrapper are explicit non-goals for v1.
 
@@ -12,29 +12,29 @@ Replication packets, JSON dumps, search-server integration, and any Docker-compo
 
 ```bash
 uv sync                                     # install deps + create .venv
-uv run musicbrainz-db-setup --help          # smoke-test the CLI
+uv run musicbrainz-database-setup --help          # smoke-test the CLI
 uv run pytest                               # unit + integration
 uv run pytest tests/unit/test_manifest.py   # single file
 uv run ruff check src tests                 # lint
 uv run mypy src                             # type-check
 ```
 
-The CLI entrypoint is declared in `pyproject.toml` under `[project.scripts]` and resolves to `musicbrainz_db_setup.cli:app`.
+The CLI entrypoint is declared in `pyproject.toml` under `[project.scripts]` and resolves to `musicbrainz_database_setup.cli:app`.
 
 ## Architecture: the end-to-end pipeline
 
 `cli.run` is the orchestrator. It calls, in order:
 
 1. **Mirror client** (`mirror/`): resolves `--latest`/`--date` to a `DumpDirectory`, fetches `SHA256SUMS`, downloads each archive with a resumable `Range:`-based loop (`mirror/download.py`). All downloads write to `<name>.part` and only rename to the final name after checksum verify.
-2. **Schema orchestrator** (`schema/orchestrator.py`): resolves the SQL git ref to a commit SHA via the GitHub API, then runs phases from `sql/manifest.py`. Pre-import phases are `Extensions`, `CreateCollations`, `CreateSearchConfiguration`, `CreateTypes`, `CreateTables` (core + per-module). Post-import phases are `CreatePrimaryKeys`, `CreateFunctions`, `CreateIndexes`, `CreateFKConstraints`, `CreateConstraints`, `SetSequences`, `CreateViews`, `CreateTriggers`. Each SQL file runs in its own transaction; completed phases are recorded in `musicbrainz_db_setup.applied_phases` so reruns are idempotent.
+2. **Schema orchestrator** (`schema/orchestrator.py`): resolves the SQL git ref to a commit SHA via the GitHub API, then runs phases from `sql/manifest.py`. Pre-import phases are `Extensions`, `CreateCollations`, `CreateSearchConfiguration`, `CreateTypes`, `CreateTables` (core + per-module). Post-import phases are `CreatePrimaryKeys`, `CreateFunctions`, `CreateIndexes`, `CreateFKConstraints`, `CreateConstraints`, `SetSequences`, `CreateViews`, `CreateTriggers`. Each SQL file runs in its own transaction; completed phases are recorded in `musicbrainz_database_setup.applied_phases` so reruns are idempotent.
 3. **Importer** (`importer/copy.py`): opens each archive with `tarfile.open(mode="r|bz2")` — pure streaming, no seeks, no disk extraction. For each `mbdump/<table>` member, runs `COPY <schema>.<table> FROM STDIN` via psycopg3's `cursor.copy()`, piping the tar member straight in. One transaction per archive. `ProgressManager` is the single shared `rich.progress.Progress` instance used by both the downloader and the COPY loop so nested bars render coherently.
 
 The phase order mirrors upstream `admin/InitDb.pl`. If you change the order, check `InitDb.pl` for the authoritative reference — the official Perl scripts are the ground truth.
 
 ## Key conventions
 
-- **Phase and archive bookkeeping both live in the `musicbrainz_db_setup` schema in the target DB** (`applied_phases`, `imported_archives`). Don't rename these without updating both `schema/orchestrator.py` and `importer/copy.py`.
-- **SQL files are cached on disk keyed by the resolved commit SHA**, not by the ref the user typed. This means `master` invalidates automatically on the next commit. Cache lives under `${XDG_CACHE_HOME}/musicbrainz-db-setup/sql/<sha>/`.
+- **Phase and archive bookkeeping both live in the `musicbrainz_database_setup` schema in the target DB** (`applied_phases`, `imported_archives`). Don't rename these without updating both `schema/orchestrator.py` and `importer/copy.py`.
+- **SQL files are cached on disk keyed by the resolved commit SHA**, not by the ref the user typed. This means `master` invalidates automatically on the next commit. Cache lives under `${XDG_CACHE_HOME}/musicbrainz-database-setup/sql/<sha>/`.
 - **Archives stream from `.part` → final name** only after SHA verification. Never read partial archives — always use the `dl.download_archive` return value.
 - **Errors subclass `MBSetupError`** with a fixed `exit_code` attribute. The CLI's `_handle_errors` context manager translates them to `sys.exit(code)`; tests should `pytest.raises(SpecificError)`.
 - **One `ProgressManager.instance()`** per process. Nested tasks are fine; don't instantiate a second `rich.progress.Progress` anywhere.
@@ -101,7 +101,7 @@ Keep prose concise. Prefer tables and lists over long paragraphs. Use code block
 
 ### Changelog & env vars
 
-Whenever a `MUSICBRAINZ_DB_SETUP_*` environment variable is added, changed, or removed, update the configuration table in `README.md` and the corresponding field on the `Settings` class in `src/musicbrainz_db_setup/config.py`.
+Whenever a `MUSICBRAINZ_DATABASE_SETUP_*` environment variable is added, changed, or removed, update the configuration table in `README.md` and the corresponding field on the `Settings` class in `src/musicbrainz_database_setup/config.py`.
 
 `CHANGELOG.md` follows the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format, using dates (`## YYYY-MM-DD`) as section headers instead of version numbers. Under each date, group entries by category (`### Added`, `### Changed`, `### Deprecated`, `### Removed`, `### Fixed`, `### Security`). Each entry includes a short description and links to the plan document, the feature document, and both session transcripts. Newest dates first; add to an existing date section if one already exists for today.
 

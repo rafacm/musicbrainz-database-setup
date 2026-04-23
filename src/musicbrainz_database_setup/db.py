@@ -6,13 +6,13 @@ from contextlib import contextmanager
 import psycopg
 from psycopg import Connection
 
-from musicbrainz_db_setup.errors import UserError
+from musicbrainz_database_setup.errors import UserError
 
 
 def connect(db_url: str | None, *, autocommit: bool = False) -> Connection:
     if not db_url:
         raise UserError(
-            "No database URL. Pass --db or set MUSICBRAINZ_DB_SETUP_DB_URL "
+            "No database URL. Pass --db or set MUSICBRAINZ_DATABASE_SETUP_DB_URL "
             "(e.g. postgresql://user:pass@host:5432/dbname)."
         )
     return psycopg.connect(db_url, autocommit=autocommit)

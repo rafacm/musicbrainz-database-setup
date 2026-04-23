@@ -17,7 +17,7 @@ from rich.progress import (
     TransferSpeedColumn,
 )
 
-from musicbrainz_db_setup.logging import get_console
+from musicbrainz_database_setup.logging import get_console
 
 
 class ProgressManager:

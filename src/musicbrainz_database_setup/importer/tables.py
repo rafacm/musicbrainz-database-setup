@@ -15,7 +15,7 @@ column list — the TSV columns match the table definition 1:1 because
 
 from __future__ import annotations
 
-from musicbrainz_db_setup.sql.manifest import MODULE_ARCHIVE, MODULE_SCHEMA
+from musicbrainz_database_setup.sql.manifest import MODULE_ARCHIVE, MODULE_SCHEMA
 
 
 def module_for_archive(archive_name: str) -> str | None:

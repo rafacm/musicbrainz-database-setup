@@ -43,4 +43,4 @@ def configure(
         )
         root.addHandler(fh)
 
-    return logging.getLogger("musicbrainz_db_setup")
+    return logging.getLogger("musicbrainz_database_setup")

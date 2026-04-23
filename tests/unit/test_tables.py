@@ -1,6 +1,6 @@
 import pytest
 
-from musicbrainz_db_setup.importer.tables import (
+from musicbrainz_database_setup.importer.tables import (
     module_for_archive,
     schema_for_archive,
 )

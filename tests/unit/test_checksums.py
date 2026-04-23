@@ -2,8 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from musicbrainz_db_setup.errors import ChecksumError
-from musicbrainz_db_setup.mirror.checksums import (
+from musicbrainz_database_setup.errors import ChecksumError
+from musicbrainz_database_setup.mirror.checksums import (
     hash_file,
     parse,
     verify_file,

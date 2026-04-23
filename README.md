@@ -1,4 +1,4 @@
-# musicbrainz-db-setup
+# musicbrainz-database-setup
 
 Python CLI that downloads MusicBrainz database dumps and imports them into a PostgreSQL instance.
 
@@ -6,9 +6,9 @@ Python CLI that downloads MusicBrainz database dumps and imports them into a Pos
 
 ```bash
 uv sync
-uv run musicbrainz-db-setup --help
-uv run musicbrainz-db-setup list-dumps
-uv run musicbrainz-db-setup run \
+uv run musicbrainz-database-setup --help
+uv run musicbrainz-database-setup list-dumps
+uv run musicbrainz-database-setup run \
     --db postgresql://postgres:postgres@localhost:5432/musicbrainz \
     --modules core \
     --latest
@@ -34,11 +34,11 @@ Precedence: CLI flags > env vars > `.env` file > defaults. Env vars:
 
 | Variable | Meaning |
 |---|---|
-| `MUSICBRAINZ_DB_SETUP_DB_URL` | libpq connection URL |
-| `MUSICBRAINZ_DB_SETUP_MIRROR_URL` | Base URL of the dump mirror |
-| `MUSICBRAINZ_DB_SETUP_SQL_REF` | Git ref (branch/tag/SHA) for admin/sql fetch |
-| `MUSICBRAINZ_DB_SETUP_WORKDIR` | Local cache dir for archives |
-| `MUSICBRAINZ_DB_SETUP_MODULES` | Default modules |
+| `MUSICBRAINZ_DATABASE_SETUP_DB_URL` | libpq connection URL |
+| `MUSICBRAINZ_DATABASE_SETUP_MIRROR_URL` | Base URL of the dump mirror |
+| `MUSICBRAINZ_DATABASE_SETUP_SQL_REF` | Git ref (branch/tag/SHA) for admin/sql fetch |
+| `MUSICBRAINZ_DATABASE_SETUP_WORKDIR` | Local cache dir for archives |
+| `MUSICBRAINZ_DATABASE_SETUP_MODULES` | Default modules |
 
 ## Scope
 

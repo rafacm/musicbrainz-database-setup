@@ -1,6 +1,6 @@
 # Prerequisites
 
-Before running `musicbrainz-db-setup`, the target PostgreSQL server and the machine running the tool must satisfy the following.
+Before running `musicbrainz-database-setup`, the target PostgreSQL server and the machine running the tool must satisfy the following.
 
 ## PostgreSQL server
 
@@ -24,7 +24,7 @@ docker run -d \
 The entrypoint creates a `postgres` superuser from `POSTGRES_PASSWORD` on first boot, which is immediately usable:
 
 ```bash
-uv run musicbrainz-db-setup run \
+uv run musicbrainz-database-setup run \
     --db postgresql://postgres:postgres@localhost:5432/postgres \
     --modules core --latest
 ```
@@ -45,7 +45,7 @@ services:
 ```
 
 ```bash
-uv run musicbrainz-db-setup run --db "$DB_URL" --modules core --latest
+uv run musicbrainz-database-setup run --db "$DB_URL" --modules core --latest
 ```
 
 ### Creating a dedicated superuser (optional)
@@ -60,7 +60,7 @@ SQL
 ```
 
 ```bash
-uv run musicbrainz-db-setup run \
+uv run musicbrainz-database-setup run \
     --db postgresql://mb:mb@localhost:5432/musicbrainz \
     --modules core --latest
 ```
@@ -92,7 +92,7 @@ RDS, Cloud SQL, and other managed providers typically include `cube`, `earthdist
 ## Client machine
 
 - **Python 3.11+** (the CLI auto-resolves via `uv`).
-- **`uv`** for running the tool as a dev-mode install (`uv sync && uv run musicbrainz-db-setup ...`).
+- **`uv`** for running the tool as a dev-mode install (`uv sync && uv run musicbrainz-database-setup ...`).
 - **`gpg`** on `$PATH` *only if* you pass `--verify-gpg`. Otherwise SHA256 checksums are used.
 
 ## Network access
