@@ -113,6 +113,17 @@ See [CHANGELOG.md](CHANGELOG.md) for the full list of implemented features, fixe
 
 - **`SCHEMA_SEQUENCE` cross-check** — compare the dump archive's `SCHEMA_SEQUENCE` file against the `current_schema_sequence` value in the fetched `CreateTables.sql` and fail hard on mismatch, so silently pointing the tool at an incompatible upstream `--ref` can't corrupt an import. `--allow-schema-mismatch` as an escape hatch.
 
+## Development
+
+For running the test suite, linting, or type-checking, install with the `dev` extra:
+
+```bash
+uv sync --extra dev
+uv run pytest
+uv run ruff check src tests
+uv run mypy src
+```
+
 ## References
 
 This tool is built on the following primary sources:
