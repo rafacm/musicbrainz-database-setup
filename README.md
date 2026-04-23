@@ -22,26 +22,29 @@ The tool also works against managed PostgreSQL (RDS, Cloud SQL, etc.) as long as
 
 ## Quick start
 
-```bash
-# 1. Start a Postgres instance (any official postgres:* image works).
-#    `--name` is the Docker container name (for `docker exec` / `docker stop`);
-#    the database name used by the tool is `postgres`, the default created by
-#    the image's entrypoint.
-docker run -d --name musicbrainz-postgres \
-    -e POSTGRES_PASSWORD=postgres \
-    -p 5432:5432 \
-    postgres:17-alpine
+1. **Start a Postgres instance.** Any official `postgres:*` image works. `--name` is the Docker container name (for `docker exec` / `docker stop`); the database name used by the tool is `postgres`, the default created by the image's entrypoint.
 
-# 2. Install the CLI.
-uv sync
+    ```bash
+    docker run -d --name musicbrainz-postgres \
+        -e POSTGRES_PASSWORD=postgres \
+        -p 5432:5432 \
+        postgres:17-alpine
+    ```
 
-# 3. Download + schema + import + finalise, end-to-end.
-#    Connection string is postgresql://<user>:<password>@<host>:<port>/<database>.
-uv run musicbrainz-database-setup run \
-    --db postgresql://postgres:postgres@localhost:5432/postgres \
-    --modules core \
-    --latest
-```
+2. **Install the CLI.**
+
+    ```bash
+    uv sync
+    ```
+
+3. **Download, create the schema, import, and finalise, end-to-end.** Connection string is `postgresql://<user>:<password>@<host>:<port>/<database>`.
+
+    ```bash
+    uv run musicbrainz-database-setup run \
+        --db postgresql://postgres:postgres@localhost:5432/postgres \
+        --modules core \
+        --latest
+    ```
 
 If neither `--latest` nor `--date YYYYMMDD-HHMMSS` is passed, `run` interactively prompts for a dump directory from the mirror.
 
