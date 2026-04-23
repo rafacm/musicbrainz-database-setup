@@ -49,18 +49,20 @@ The MusicBrainz database is split across several `.tar.bz2` archives on the mirr
 
 | Module | Archive | Target schema | Contents | Licence |
 |---|---|---|---|---|
-| `core` | `mbdump.tar.bz2` | `musicbrainz` | Artists, releases, recordings, works, labels, areas, places, events, series, instruments, URLs, genres. | CC0 |
-| `derived` | `mbdump-derived.tar.bz2` | `musicbrainz` | Annotations, ratings, tags, search helpers. | CC BY-NC-SA |
-| `editor` | `mbdump-editor.tar.bz2` | `musicbrainz` | Editor accounts. | CC BY-NC-SA |
-| `edit` | `mbdump-edit.tar.bz2` | `musicbrainz` | Edit history. | CC BY-NC-SA |
-| `cover-art` | `mbdump-cover-art-archive.tar.bz2` | `cover_art_archive` | Cover Art Archive metadata. | CC BY-NC-SA |
-| `event-art` | `mbdump-event-art-archive.tar.bz2` | `event_art_archive` | Event Art Archive metadata. | CC BY-NC-SA |
-| `stats` | `mbdump-stats.tar.bz2` | `statistics` | Site statistics. | CC BY-NC-SA |
-| `documentation` | `mbdump-documentation.tar.bz2` | `documentation` | Wiki documentation for entities. | CC BY-NC-SA |
-| `wikidocs` | `mbdump-wikidocs.tar.bz2` | `wikidocs` | Stored wiki-docs tables. | CC BY-NC-SA |
-| `cdstubs` | `mbdump-cdstubs.tar.bz2` | `musicbrainz` | CDStubs. | CC0 |
+| `core` | `mbdump.tar.bz2` | `musicbrainz` | Artists, releases, recordings, works, labels, areas, places, events, series, instruments, URLs, genres. | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| `derived` | `mbdump-derived.tar.bz2` | `musicbrainz` | Annotations, ratings, tags, search helpers. | [CC BY-NC-SA 3.0](https://creativecommons.org/licenses/by-nc-sa/3.0/) |
+| `editor` | `mbdump-editor.tar.bz2` | `musicbrainz` | Editor accounts. | [CC BY-NC-SA 3.0](https://creativecommons.org/licenses/by-nc-sa/3.0/) |
+| `edit` | `mbdump-edit.tar.bz2` | `musicbrainz` | Edit history. | [CC BY-NC-SA 3.0](https://creativecommons.org/licenses/by-nc-sa/3.0/) |
+| `cover-art` | `mbdump-cover-art-archive.tar.bz2` | `cover_art_archive` | Cover Art Archive metadata. | [CC BY-NC-SA 3.0](https://creativecommons.org/licenses/by-nc-sa/3.0/) |
+| `event-art` | `mbdump-event-art-archive.tar.bz2` | `event_art_archive` | Event Art Archive metadata. | [CC BY-NC-SA 3.0](https://creativecommons.org/licenses/by-nc-sa/3.0/) |
+| `stats` | `mbdump-stats.tar.bz2` | `statistics` | Site statistics. | [CC BY-NC-SA 3.0](https://creativecommons.org/licenses/by-nc-sa/3.0/) |
+| `documentation` | `mbdump-documentation.tar.bz2` | `documentation` | Wiki documentation for entities. | [CC BY-NC-SA 3.0](https://creativecommons.org/licenses/by-nc-sa/3.0/) |
+| `wikidocs` | `mbdump-wikidocs.tar.bz2` | `wikidocs` | Stored wiki-docs tables. | [CC BY-NC-SA 3.0](https://creativecommons.org/licenses/by-nc-sa/3.0/) |
+| `cdstubs` | `mbdump-cdstubs.tar.bz2` | `musicbrainz` | CDStubs. | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
 
 Example: `--modules core,derived,cover-art`.
+
+The canonical enumeration of these archives — their contents, licensing, and release cadence — lives on the [MusicBrainz Database / Download wiki page](https://wiki.musicbrainz.org/MusicBrainz_Database/Download).
 
 ## Commands
 
