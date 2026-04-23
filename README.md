@@ -6,6 +6,15 @@ The steps this tool automates are otherwise scattered across the [MusicBrainz wi
 
 ## Requirements
 
+### TL;DR
+
+- PostgreSQL **16 or later** — any official [`postgres:*` Docker image](https://hub.docker.com/_/postgres) satisfies every server-side requirement out of the box.
+- A role with **`SUPERUSER`** on the target DB (the default `postgres` user works).
+- **`psql`** on your `$PATH` on the machine running the tool.
+- **~30 GB** of free disk for `core + derived` downloads; **~160 GB** for the live DB once indexes are built.
+
+Details below.
+
 PostgreSQL **16 or later** with:
 
 - The **`cube`**, **`earthdistance`**, and **`unaccent`** extensions — declared in upstream [`admin/sql/Extensions.sql`](https://github.com/metabrainz/musicbrainz-server/blob/master/admin/sql/Extensions.sql). They ship with the `postgresql-contrib` package, which is bundled in every official [`postgres:*` Docker image](https://hub.docker.com/_/postgres).
