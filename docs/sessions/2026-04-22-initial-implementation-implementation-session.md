@@ -258,3 +258,53 @@ Grounded the answer with `gh api` checks against the upstream repos: `mbdata` MI
 ### Assistant
 
 Added `LICENSE` at the repo root with the standard MIT text (© 2026 Rafael Cordones). Updated `pyproject.toml` from `license = { text = "MIT" }` to `license = { file = "LICENSE" }` so the declared license references the actual file. Ran `uv sync --extra dev` (rebuilt successfully), `uv run pytest -q` (20/20), `uv run ruff check src tests` (clean).
+
+### User
+
+> Have you pushed these changes?
+
+### Assistant
+
+Yes — confirmed `4a73754` on `origin/feature/initial-implementation` and local HEAD matched exactly.
+
+### User
+
+> Update also the License section in the root README with a link to the lincese then.
+
+### Assistant
+
+Changed the `## License` section in `README.md` from a bare "MIT." to "[MIT](LICENSE) — © 2026 Rafael Cordones." — the link resolves relatively both on GitHub and in any Markdown viewer, and the copyright line is visible without clicking through. Committed as `1c88978` and pushed.
+
+### User
+
+> I tested locally and I get this error: [...] Error: Failed to apply admin/sql/Extensions.sql: syntax error at or near "\" LINE 1: \set ON_ERROR_STOP 1
+
+### Assistant
+
+Diagnosed: the upstream `admin/sql/*.sql` files are **psql-flavoured**, not raw SQL. Every file begins with `\set ON_ERROR_STOP 1` (a psql meta-command the server doesn't understand) and wraps its body in its own `BEGIN;/COMMIT;` pair. Our schema orchestrator was sending them to psycopg3 directly, which hit the `\` on line 1 and bombed.
+
+Initial thought was a preprocessor to strip backslash meta-commands. The user pushed back asking why not align with the upstream Perl scripts — and they were right: `admin/InitDb.pl` shells out to `psql -f <file>` for every file. Reinventing a subset of psql in Python means maintaining a parser and carrying risk that future psql syntax upstream breaks us. Walked through tradeoffs of requiring `psql` as a client-machine dep vs maintaining a parser, and separately covered what change-detection we have today (pinned git ref, HTTP 404, nothing for silent schema-sequence drift or new phase files).
+
+### User
+
+> What about requiring that psql is available? What would be the tradeoffs? If the Perl scripts change in the future, do we have logic in place to detect that?
+
+### Assistant
+
+Gave a two-part answer: (1) the tradeoffs of requiring `psql` (the main con is the extra system dep, offset by it being one-line installable and ubiquitous in the PG ecosystem); (2) honestly level-set that our future-proofing against upstream changes is rudimentary — pinned `--ref` and HTTP 404s catch renames, but `SCHEMA_SEQUENCE` drift and brand-new phase files would be silently missed. Proposed: wire the psql approach, drop the now-redundant `ensure_extensions()`, and document what's implemented vs what's coming.
+
+### User
+
+> Let's go with requiring psql and add it as a requirement in the README. Regarding "Future-proofing against upstream changes", let's add a section in the README called "Status", with a subsecion called "What's already implemented" and a bulletpoint list of what's implemented. Then a reference to the CHANGELOG.md file "See CHANGELOG.md for the full list of implemented features, fixes, implementation plans, feature documentation and session transcripts.". Then a subsection "What's coming" with the points we need to take care of that you mentioned above.
+
+### Assistant
+
+Implemented:
+- New `src/musicbrainz_database_setup/schema/psql.py`: `ensure_psql_available()` probes `$PATH` via `shutil.which`, raising `PrerequisiteMissing` with the install command for each OS; `run_sql_file(conn, file_path)` shells out to `psql -X -q -v ON_ERROR_STOP=1 -f <file>` with libpq env vars (`PGHOST`, `PGPORT`, `PGUSER`, `PGDATABASE`, `PGPASSWORD`) extracted from `conn.info` so credentials stay out of `ps`. Non-zero exit raises `SchemaError` with psql's stderr (which carries line numbers for failing statements).
+- `schema/orchestrator.py`: `_run_file` now shells out to `run_sql_file` instead of `cur.execute`; bookkeeping runs in its own small txn after; `ensure_psql_available()` is called at the top of `run_pre_import` and `run_post_import`.
+- `schema/extensions.py`: dropped `ensure_extensions()` — `admin/sql/Extensions.sql` does the same `CREATE EXTENSION IF NOT EXISTS` calls itself, so our copy was redundant.
+- `README.md`: added a `psql` bullet to Requirements with install commands for macOS / Debian / Alpine, and an explanation of why we shell out. Added a new `Status` section with "What's already implemented" (bullets: mirror listing, resumable SHA-verified downloads, SHA-keyed SQL cache, psql-backed orchestrator, streaming COPY, progress bars, bookkeeping, all 10 modules, preflights) → "See CHANGELOG.md …" → "What's coming" (`SCHEMA_SEQUENCE` cross-check, canary CI, GHCR runner image).
+- `AGENTS.md`: new Tricky-bits bullet describing the psql flow for future agents.
+- `CHANGELOG.md`: 2026-04-23 `Added` (Status section) + `Fixed` (psql flow, dropped `ensure_extensions`).
+
+Ran `uv run pytest -q` (20/20), `uv run ruff check src tests` (clean), `uv run musicbrainz-database-setup --help` (renders).

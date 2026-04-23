@@ -1,7 +1,12 @@
 """Runs schema DDL phases in the canonical InitDb.pl order.
 
-Each SQL file is executed in its own transaction. Completed phases are
-recorded in ``musicbrainz_database_setup.applied_phases`` so reruns are idempotent.
+Each upstream ``admin/sql/*.sql`` file is applied by shelling out to
+``psql`` (matching what ``admin/InitDb.pl`` does), because these files
+use psql-specific meta-commands (``\\set ON_ERROR_STOP 1``, ``\\unset``)
+and manage their own ``BEGIN;/COMMIT;`` pairs. Our own bookkeeping
+runs via psycopg3 on a separate transaction so completed phases are
+recorded in ``musicbrainz_database_setup.applied_phases`` and reruns
+are idempotent.
 """
 
 from __future__ import annotations
@@ -11,13 +16,13 @@ from pathlib import Path
 
 from psycopg import Connection, sql
 
-from musicbrainz_database_setup.errors import SchemaError
-from musicbrainz_database_setup.schema.extensions import ensure_extensions, preflight
+from musicbrainz_database_setup.schema.extensions import preflight
 from musicbrainz_database_setup.schema.phases import (
     APPLIED_PHASES_TABLE,
     BOOKKEEPING_SCHEMA,
     Phase,
 )
+from musicbrainz_database_setup.schema.psql import ensure_psql_available, run_sql_file
 from musicbrainz_database_setup.sql import github, manifest
 from musicbrainz_database_setup.sql.manifest import SqlFile
 
@@ -75,16 +80,17 @@ class Orchestrator:
     # ---------------------------------------------------------------- phases
 
     def run_pre_import(self) -> None:
+        ensure_psql_available()
         preflight(self.conn)
         self.ensure_bookkeeping()
         self.ensure_schemas()
-        ensure_extensions(self.conn)
         self.conn.commit()
 
         for sqlfile in manifest.pre_import_files(self.modules):
             self._run_file(sqlfile, phase_group="pre")
 
     def run_post_import(self) -> None:
+        ensure_psql_available()
         self.ensure_bookkeeping()
         for sqlfile in manifest.post_import_files(self.modules):
             self._run_file(sqlfile, phase_group="post")
@@ -104,16 +110,17 @@ class Orchestrator:
             return
 
         local = github.fetch(sqlfile.repo_path, sha=self.sha, cache_root=self.cache_root)
-        body = local.read_text(encoding="utf-8")
         log.info("Running %s", sqlfile.repo_path)
-        try:
-            with self.conn.cursor() as cur:
-                cur.execute(body)  # type: ignore[arg-type]
-            self._record_applied(phase_key)
-            self.conn.commit()
-        except Exception as exc:
-            self.conn.rollback()
-            raise SchemaError(f"Failed to apply {sqlfile.repo_path}: {exc}") from exc
+
+        # psql manages the file's own BEGIN;/COMMIT; and handles meta-commands
+        # natively. Release any read txn left open by _already_applied first
+        # so psql's connection sees a clean state.
+        self.conn.commit()
+        run_sql_file(self.conn, local)
+
+        # Record applied-phase bookkeeping in its own small transaction.
+        self._record_applied(phase_key)
+        self.conn.commit()
 
     def _already_applied(self, phase_key: str) -> bool:
         with self.conn.cursor() as cur:
