@@ -105,6 +105,8 @@ Keep prose concise. Prefer tables and lists over long paragraphs. Use code block
 
 Whenever a `MUSICBRAINZ_DATABASE_SETUP_*` environment variable is added, changed, or removed, update the configuration table in `README.md` and the corresponding field on the `Settings` class in `src/musicbrainz_database_setup/config.py`.
 
+Whenever a CLI command is added, renamed, removed, or its behaviour changes, review the whole documentation surface and update anything that refers to the affected command: the "Supported commands" section in `README.md`, other README sections that invoke it (Quick start, Modules, Configuration), relevant docs under `docs/features/`, and any examples in `AGENTS.md` itself.
+
 `CHANGELOG.md` follows the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format, using dates (`## YYYY-MM-DD`) as section headers instead of version numbers. Under each date, group entries by category (`### Added`, `### Changed`, `### Deprecated`, `### Removed`, `### Fixed`, `### Security`). Each entry includes a short description and links to the plan document, the feature document, and both session transcripts. Newest dates first; add to an existing date section if one already exists for today.
 
 The commit for a given feature MUST contain the plan, the feature documentation, and both session transcripts (planning and implementation).
