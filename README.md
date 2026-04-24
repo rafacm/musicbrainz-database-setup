@@ -6,6 +6,14 @@
   <strong>MusicBrainz Data Dumps to PostgreSQL, in one beat</strong>
 </p>
 
+<p align="center">
+  <a href="https://github.com/rafacm/musicbrainz-database-setup/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/rafacm/musicbrainz-database-setup/actions/workflows/ci.yml/badge.svg" /></a>
+  <a href="https://www.python.org/downloads/"><img alt="Python 3.11 | 3.12 | 3.13" src="https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue.svg" /></a>
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green.svg" /></a>
+</p>
+
+<br/>
+
 `musicbrainz-database-setup` is a Python CLI that sets up a full [MusicBrainz](https://musicbrainz.org/) database in a PostgreSQL instance of your choice. It downloads the official dumps from the MetaBrainz mirror, creates the [schema](https://wiki.musicbrainz.org/MusicBrainz_Database/Schema) by running the upstream `admin/sql/*.sql` [files](https://github.com/metabrainz/musicbrainz-server/tree/master/admin/sql) against your database, and loads the data straight from the archives into your database — with resumable downloads, verified integrity, and live progress for every table.
 
 This tool brings together the steps documented across the [MusicBrainz wiki](https://wiki.musicbrainz.org/MusicBrainz_Database/Download), the `musicbrainz-server` [admin Perl scripts](https://github.com/metabrainz/musicbrainz-server/tree/master/admin), and the [`metabrainz/musicbrainz-docker`](https://github.com/metabrainz/musicbrainz-docker) stack into a single command you can point at any PostgreSQL connection.
