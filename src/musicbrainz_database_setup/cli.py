@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import sys
+from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Annotated
@@ -225,7 +226,7 @@ def import_(
     dump_dir: Annotated[
         Path,
         typer.Option("--dump-dir", help="Local directory containing the .tar.bz2 archives."),
-    ] = ...,
+    ] = ...,  # type: ignore[assignment]
     modules: ModulesOption = "core",
     force: Annotated[bool, typer.Option("--force-reimport")] = False,
 ) -> None:
@@ -281,7 +282,7 @@ def run(
 
 @app.command("verify")
 def verify_cmd(
-    dump_dir: Annotated[Path, typer.Option("--dump-dir")] = ...,
+    dump_dir: Annotated[Path, typer.Option("--dump-dir")] = ...,  # type: ignore[assignment]
     modules: ModulesOption = "core",
 ) -> None:
     """Print SCHEMA_SEQUENCE + REPLICATION_SEQUENCE from each archive."""
@@ -323,7 +324,7 @@ def clean(
 
 
 @contextmanager
-def _handle_errors():
+def _handle_errors() -> Iterator[None]:
     try:
         yield
     except MBSetupError as exc:
