@@ -75,24 +75,22 @@ For the full entity model and table-by-table reference, see the [MusicBrainz Dat
 
 ## Modules
 
-The MusicBrainz database is split across several `.tar.bz2` archives on the mirror. `--modules` (comma-separated) selects which to download and import. `core` is the default; the others are opt-in.
+The MusicBrainz database is split across several `.tar.bz2` archives on the mirror — enumerated canonically, with contents, licensing, and release cadence, on the [MusicBrainz Database / Download wiki page](https://wiki.musicbrainz.org/MusicBrainz_Database/Download).
 
-| Module | Target schema | Contents | Licence |
-|---|---|---|---|
-| `core` | `musicbrainz` | Artists, releases, recordings, works, labels, areas, places, events, series, instruments, URLs, genres. | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
-| `derived` | `musicbrainz` | Annotations, ratings, tags, search helpers. | [CC BY-NC-SA 3.0](https://creativecommons.org/licenses/by-nc-sa/3.0/) |
-| `editor` | `musicbrainz` | Editor accounts. | [CC BY-NC-SA 3.0](https://creativecommons.org/licenses/by-nc-sa/3.0/) |
-| `edit` | `musicbrainz` | Edit history. | [CC BY-NC-SA 3.0](https://creativecommons.org/licenses/by-nc-sa/3.0/) |
-| `cover-art` | `cover_art_archive` | Cover Art Archive metadata. | [CC BY-NC-SA 3.0](https://creativecommons.org/licenses/by-nc-sa/3.0/) |
-| `event-art` | `event_art_archive` | Event Art Archive metadata. | [CC BY-NC-SA 3.0](https://creativecommons.org/licenses/by-nc-sa/3.0/) |
-| `stats` | `statistics` | Site statistics. | [CC BY-NC-SA 3.0](https://creativecommons.org/licenses/by-nc-sa/3.0/) |
-| `documentation` | `documentation` | Wiki documentation for entities. | [CC BY-NC-SA 3.0](https://creativecommons.org/licenses/by-nc-sa/3.0/) |
-| `wikidocs` | `wikidocs` | Stored wiki-docs tables. | [CC BY-NC-SA 3.0](https://creativecommons.org/licenses/by-nc-sa/3.0/) |
-| `cdstubs` | `musicbrainz` | CDStubs. | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
+`--modules` (comma-separated) selects which to download and import; `core` is the default and the others are opt-in. Example: `--modules core,derived,cover-art`.
 
-Example: `--modules core,derived,cover-art`.
-
-The canonical enumeration of these archives — their contents, licensing, and release cadence — lives on the [MusicBrainz Database / Download wiki page](https://wiki.musicbrainz.org/MusicBrainz_Database/Download).
+| Module | Target schema | Contents |
+|---|---|---|
+| `core` | `musicbrainz` | Core MusicBrainz database — tables for Artist, Release, Recording, etc. Most catalog use cases only need this plus `derived`. |
+| `derived` | `musicbrainz` | Annotations, user ratings, user tags, and search indexes. Required for genre data (genres are stored as user tags). Annotations FK to editors, so add `editor` for standalone (non-mirror) setups. |
+| `editor` | `musicbrainz` | Non-personal user data about the people who enacted the edits in the edit history. |
+| `edit` | `musicbrainz` | Complete edit history for the core database — open and closed edits, edit notes, votes, and auto-editor elections. Editor identity comes from the `editor` dump. |
+| `cover-art` | `cover_art_archive` | Tables linking MusicBrainz to the [Cover Art Archive](https://wiki.musicbrainz.org/Cover_Art_Archive) (metadata only — no images). |
+| `event-art` | `event_art_archive` | Tables linking MusicBrainz to the [Event Art Archive](https://wiki.musicbrainz.org/Event_Art_Archive) (metadata only — no images). |
+| `stats` | `statistics` | Site statistics — the data behind [musicbrainz.org/statistics](https://musicbrainz.org/statistics). |
+| `documentation` | `documentation` | Tables specifying which relationships are used as examples for each relationship type, plus per-type guidelines where available. |
+| `wikidocs` | `wikidocs` | The `wikidocs_index` table — which revision is transcluded for each page in the [WikiDocs](https://wiki.musicbrainz.org/WikiDocs) system. |
+| `cdstubs` | `musicbrainz` | [CD Stubs](https://wiki.musicbrainz.org/CD_Stub) — anonymously submitted, treated as an untrusted source kept separate from the core database. |
 
 ## Supported commands
 
