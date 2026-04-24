@@ -18,6 +18,8 @@
 
 This tool brings together the steps documented across the [MusicBrainz wiki](https://wiki.musicbrainz.org/MusicBrainz_Database/Download), the `musicbrainz-server` [admin Perl scripts](https://github.com/metabrainz/musicbrainz-server/tree/master/admin), and the [`metabrainz/musicbrainz-docker`](https://github.com/metabrainz/musicbrainz-docker) stack into a single command you can point at any PostgreSQL connection.
 
+This project came out of [RAGtime](https://github.com/rafacm/ragtime) to be used in the [entity-resolution step](https://github.com/rafacm/ragtime/tree/main/doc#8--resolve-entities-status-resolving) to map extracted mentions to canonical MusicBrainz entities.
+
 ## Requirements
 
 - PostgreSQL **16 or later** — any official [`postgres:*` Docker image](https://hub.docker.com/_/postgres) satisfies every server-side requirement out of the box.
