@@ -36,12 +36,26 @@ def ensure_psql_available() -> None:
         )
 
 
-# Startup options applied to every psql connection. Mirrors what upstream
-# admin/InitDb.pl does: sets search_path so unqualified references to the
-# `musicbrainz` collation (and others) resolve without needing every file to
-# schema-qualify them, and downgrades NOTICE chatter to keep the output
-# focused on actual warnings.
-_PGOPTIONS = "-c search_path=musicbrainz,public -c client_min_messages=WARNING"
+# Startup options applied to every psql connection.
+#
+# `search_path` + `client_min_messages` match what upstream admin/InitDb.pl
+# needs: unqualified references to the `musicbrainz` collation resolve, and
+# NOTICE chatter stays quiet so the output focuses on real warnings.
+#
+# The performance knobs (`synchronous_commit`, `maintenance_work_mem`, …)
+# mirror `db.bulk_session()`. `bulk_session()` only wraps the COPY
+# transaction (a psycopg3 path); without repeating the tuning here the
+# psql-driven DDL files run on stock 64 MB `maintenance_work_mem` and
+# fsync every commit, which dominated import time before this change.
+_PGOPTIONS = (
+    "-c search_path=musicbrainz,public "
+    "-c client_min_messages=WARNING "
+    "-c synchronous_commit=off "
+    "-c maintenance_work_mem=2GB "
+    "-c work_mem=256MB "
+    "-c max_parallel_maintenance_workers=4 "
+    "-c statement_timeout=0"
+)
 
 
 def _psql_env(conn: Connection) -> dict[str, str]:
