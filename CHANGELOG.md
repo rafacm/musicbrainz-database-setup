@@ -9,16 +9,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Changed
 
 - Restructured the root `README.md`: project-identity image at the top, less-technical opening paragraph and more-positive second paragraph, TL;DR-first Requirements (full details moved to a new "Requirements in detail" section linked from the TL;DR), Quick-start numbered list replaced with sub-sections and multi-line `docker` / `uv` commands, Modules table slimmed (dropped the redundant Archive column), "Commands" renamed to "Supported commands" with a `--help` pointer, and "What's already implemented" condensed from ten bullets to five. Configuration table rows for `SQL_REF`, `WORKDIR`, `MODULES` now include their defaults, plus a new row for `SQL_CACHE_DIR`.
+- Modules section: removed the Licence column (the linked [MusicBrainz Database / Download wiki page](https://wiki.musicbrainz.org/MusicBrainz_Database/Download) is the canonical source for per-archive licensing) and rewrote the Contents cells using the wiki's own wording — surfacing non-obvious bits the old one-liners hid (genres-via-tags in `derived`, the editor FK dependency, "metadata only — no images" for the art archives, the actual `wikidocs_index` table name, etc.). Moved the wiki pointer and `--modules` example to the section intro.
 
 ### Added
 
 - New "Splitting the connection string" sub-section under Configuration documents the libpq `PG*` env-var fallback pattern — e.g. `PGPASSWORD` supplied at runtime from a secret manager while host/port/user/database stay committed in `.env`.
 - `tests/unit/test_psql_env.py`: three unit tests covering `schema.psql._psql_env` — `PGPASSWORD` set from a password-bearing URL, passwordless URL leaves an inherited `PGPASSWORD` intact, and both-absent leaves `PGPASSWORD` out of the child env.
 - AGENTS.md rule: whenever a CLI command is added, renamed, removed, or its behaviour changes, the whole documentation surface must be reviewed (README sections beyond "Supported commands", `docs/features/`, AGENTS.md itself).
+- GitHub Actions CI workflow at `.github/workflows/ci.yml`: runs `ruff` → `mypy` → `pytest` under `uv sync --extra dev` on pushes to `main` and PRs into `main`. Matrix over Python 3.11 / 3.12 / 3.13 with `fail-fast: false`; a `concurrency` group cancels superseded PR runs to save Actions minutes.
+- README header badges (centered `<p>` below the tagline): CI status linking to the Actions runs page, supported Python versions (3.11 | 3.12 | 3.13), and MIT license.
+- README third intro paragraph noting this project came out of [RAGtime](https://github.com/rafacm/ragtime), where it stands up the local MusicBrainz mirror used by the [entity-resolution step](https://github.com/rafacm/ragtime/tree/main/doc#8--resolve-entities-status-resolving).
 
 ### Removed
 
 - `## Scope` section in the README. The "one-shot full imports only" line was already captured in AGENTS.md's "Out of scope for v1" list; the SQL-ref reproducibility tip ("pin to a `v-NN-schema-change` tag") moved into the Configuration table's `SQL_REF` row.
+
+### Fixed
+
+- Seven `mypy --strict` errors in `src/musicbrainz_database_setup/cli.py` and `src/musicbrainz_database_setup/progress.py`: typed the kwargs bag in `ProgressManager.update` as `dict[str, Any]` so `**unpack` reaches `rich.progress.Progress.update`'s heterogeneously-typed params; added narrow `# type: ignore[assignment]` on the two Typer `= ...` required-option defaults in `cli.import_` and `cli.verify_cmd` (idiom mypy can't model); annotated `cli._handle_errors() -> Iterator[None]`.
 
 ## 2026-04-22
 
