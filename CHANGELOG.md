@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), using dates (`## YYYY-MM-DD`) as section headers instead of version numbers.
 
+## 2026-04-24
+
+### Changed
+
+- Restructured the root `README.md`: project-identity image at the top, less-technical opening paragraph and more-positive second paragraph, TL;DR-first Requirements (full details moved to a new "Requirements in detail" section linked from the TL;DR), Quick-start numbered list replaced with sub-sections and multi-line `docker` / `uv` commands, Modules table slimmed (dropped the redundant Archive column), "Commands" renamed to "Supported commands" with a `--help` pointer, and "What's already implemented" condensed from ten bullets to five. Configuration table rows for `SQL_REF`, `WORKDIR`, `MODULES` now include their defaults, plus a new row for `SQL_CACHE_DIR`.
+
+### Added
+
+- New "Splitting the connection string" sub-section under Configuration documents the libpq `PG*` env-var fallback pattern — e.g. `PGPASSWORD` supplied at runtime from a secret manager while host/port/user/database stay committed in `.env`.
+- `tests/unit/test_psql_env.py`: three unit tests covering `schema.psql._psql_env` — `PGPASSWORD` set from a password-bearing URL, passwordless URL leaves an inherited `PGPASSWORD` intact, and both-absent leaves `PGPASSWORD` out of the child env.
+- AGENTS.md rule: whenever a CLI command is added, renamed, removed, or its behaviour changes, the whole documentation surface must be reviewed (README sections beyond "Supported commands", `docs/features/`, AGENTS.md itself).
+
+### Removed
+
+- `## Scope` section in the README. The "one-shot full imports only" line was already captured in AGENTS.md's "Out of scope for v1" list; the SQL-ref reproducibility tip ("pin to a `v-NN-schema-change` tag") moved into the Configuration table's `SQL_REF` row.
+
 ## 2026-04-22
 
 ### Added
