@@ -51,7 +51,7 @@ def test_psql_env_pgoptions_includes_ddl_performance_knobs(monkeypatch):
     assert "client_min_messages=WARNING" in opts
     # Performance knobs mirroring db.bulk_session()
     assert "synchronous_commit=off" in opts
-    assert "maintenance_work_mem=2GB" in opts
+    assert "maintenance_work_mem=1GB" in opts
     assert "work_mem=256MB" in opts
     assert "max_parallel_maintenance_workers=4" in opts
     assert "statement_timeout=0" in opts
