@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from contextlib import contextmanager
+from typing import Any
 
 from rich.progress import (
     BarColumn,
@@ -85,7 +86,7 @@ class ProgressManager:
         description: str | None = None,
         note: str | None = None,
     ) -> None:
-        kwargs: dict[str, object] = {}
+        kwargs: dict[str, Any] = {}
         if completed is not None:
             kwargs["completed"] = completed
         if total is not None:
