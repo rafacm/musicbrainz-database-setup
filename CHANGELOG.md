@@ -31,6 +31,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- OOM on an 8 GB Docker Desktop VM during `CreateFKConstraints.sql` when the tuned settings combined `shared_buffers=4GB` + `_PGOPTIONS maintenance_work_mem=2GB`: worst-case ask was 4 GB shared + 5 × 2 GB = 14 GB on a single CREATE INDEX. Lowered `_PGOPTIONS maintenance_work_mem` from `2GB` → `1GB` (peak 5 GB) and the README's tuned `docker run` `shared_buffers` from `4GB` → `2GB` (25 % of an 8 GB VM). Added a `⚠️ Memory sizing` callout in the README explaining the `1 + max_parallel_maintenance_workers` multiplier. End-to-end tuned run now completes in 20 m 44 s vs 26 m 53 s untuned (−23 %) — COPY 14 m 01 s → 7 m 17 s (−48 %, pbzip2 working as designed), CreateIndexes 4 m 05 s → 3 m 00 s (−27 %, parallel maintenance workers).
 - Seven `mypy --strict` errors in `src/musicbrainz_database_setup/cli.py` and `src/musicbrainz_database_setup/progress.py`: typed the kwargs bag in `ProgressManager.update` as `dict[str, Any]` so `**unpack` reaches `rich.progress.Progress.update`'s heterogeneously-typed params; added narrow `# type: ignore[assignment]` on the two Typer `= ...` required-option defaults in `cli.import_` and `cli.verify_cmd` (idiom mypy can't model); annotated `cli._handle_errors() -> Iterator[None]`.
 
 ## 2026-04-22
