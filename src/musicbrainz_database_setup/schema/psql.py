@@ -47,11 +47,18 @@ def ensure_psql_available() -> None:
 # transaction (a psycopg3 path); without repeating the tuning here the
 # psql-driven DDL files run on stock 64 MB `maintenance_work_mem` and
 # fsync every commit, which dominated import time before this change.
+#
+# `maintenance_work_mem=1GB` is intentionally conservative: with
+# `max_parallel_maintenance_workers=4`, CREATE INDEX can allocate up to
+# 5 × maintenance_work_mem = 5 GB on a single statement. Combined with a
+# 2 GB `shared_buffers` (README default) this fits comfortably in an 8 GB
+# Docker Desktop VM. Raising it to 2 GB OOM'd CreateFKConstraints.sql on
+# 2026-04-24 (peak ask would be 2 GB shared + 10 GB maintenance = 12 GB).
 _PGOPTIONS = (
     "-c search_path=musicbrainz,public "
     "-c client_min_messages=WARNING "
     "-c synchronous_commit=off "
-    "-c maintenance_work_mem=2GB "
+    "-c maintenance_work_mem=1GB "
     "-c work_mem=256MB "
     "-c max_parallel_maintenance_workers=4 "
     "-c statement_timeout=0"

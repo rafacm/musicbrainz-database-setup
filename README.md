@@ -199,16 +199,18 @@ docker run -d --name musicbrainz-postgres \
   -e POSTGRES_PASSWORD=postgres \
   -p 5432:5432 \
   postgres:17-alpine \
-  -c shared_buffers=4GB \
+  -c shared_buffers=2GB \
   -c max_wal_size=8GB \
   -c checkpoint_timeout=30min \
   -c effective_io_concurrency=200 \
   -c random_page_cost=1.1
 ```
 
-- `shared_buffers=4GB` — default 128 MB forces constant disk re-reads during CHECK/FK full-table scans; at 4 GB the hot tables fit in cache.
+- `shared_buffers=2GB` — default 128 MB forces constant disk re-reads during CHECK/FK full-table scans; at 2 GB the hot tables fit in cache without starving the rest of the 8 GB Docker Desktop VM. (If your VM has more RAM, you can safely push this to `4GB`.)
 - `max_wal_size=8GB` + `checkpoint_timeout=30min` — default 1 GB / 5 min triggers checkpoints every couple of minutes during COPY.
 - `effective_io_concurrency=200` + `random_page_cost=1.1` — signal to the planner that the underlying storage (Docker named volume on SSD) isn't a spinning disk.
+
+> ⚠️ **Memory sizing.** The tool applies `maintenance_work_mem=1GB` per psql session during DDL, and CREATE INDEX can fan out to `1 + max_parallel_maintenance_workers` workers each using that budget — up to **5 GB peak** on a single statement. Combined with `shared_buffers=2GB` above, that's ~7 GB of Postgres's own memory, fitting an 8 GB Docker Desktop VM with headroom for the OS and page cache. Raising `shared_buffers` beyond 2 GB on an 8 GB VM risks OOM kills during `CreateFKConstraints.sql` / `CreateConstraints.sql` — we hit this on 2026-04-24 with `shared_buffers=4GB`.
 
 ### PostgreSQL client (`psql`)
 
@@ -222,7 +224,7 @@ MusicBrainz dumps ship as `.tar.bz2`, and CPython's stdlib `bz2` module is singl
 
 Expect **~10–15 GB** of downloads for `core`, **~30 GB** for `core + derived`, and the live database grows to roughly **100–160 GB** once indexes are built. More if `cover-art` or `event-art` are selected.
 
-Memory is comfortable at **8 GB** for the Postgres container with the tuning above (`shared_buffers=4GB` + the per-session `maintenance_work_mem=2GB` applied during DDL); **16 GB** if you're running the client and the database on the same machine. CPython's stdlib `bz2` fallback adds no client-side memory pressure; `pbzip2` uses a small fixed buffer per thread.
+Memory is comfortable at **8 GB** for the Postgres container with the tuning above (`shared_buffers=2GB` + the per-session `maintenance_work_mem=1GB` applied during DDL); **16 GB** if you're running the client and the database on the same machine. CPython's stdlib `bz2` fallback adds no client-side memory pressure; `pbzip2` uses a small fixed buffer per thread.
 
 ## References
 
