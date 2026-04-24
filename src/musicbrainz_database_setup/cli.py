@@ -328,7 +328,10 @@ def _handle_errors() -> Iterator[None]:
     try:
         yield
     except MBSetupError as exc:
-        get_console().print(f"[bold red]Error:[/] {exc}")
+        console = get_console()
+        console.print(f"[bold red]Error:[/] {exc}")
+        if logging.getLogger().getEffectiveLevel() <= logging.DEBUG:
+            console.print_exception(show_locals=False)
         sys.exit(exc.exit_code)
     except KeyboardInterrupt:
         get_console().print("[yellow]Interrupted.[/]")
