@@ -10,6 +10,7 @@ from pathlib import Path
 
 import pytest
 
+from musicbrainz_database_setup.errors import ImportError_
 from musicbrainz_database_setup.importer import archive as archive_module
 from musicbrainz_database_setup.importer.archive import (
     iter_mbdump_members,
@@ -109,3 +110,70 @@ def test_parallel_bz2_tool_prefers_pbzip2_over_lbzip2(monkeypatch: pytest.Monkey
     monkeypatch.setattr(archive_module.shutil, "which", fake_which)
     assert archive_module._parallel_bz2_tool() == "/usr/local/bin/pbzip2"
     assert calls == ["pbzip2"]  # short-circuits before checking lbzip2
+
+
+def _fake_failing_bz2_tool(tmp_path: Path, *, source_bzip2: str) -> Path:
+    """Write a tiny shell script that honours the ``<tool> -dc <path>``
+    contract — decompresses the input via real `bzip2 -dc` so `tarfile`
+    sees a valid stream — then exits 2 with a stderr message, simulating
+    a parallel decompressor that flags a late failure (e.g. a CRC
+    mismatch reported after emitting a valid prefix).
+    """
+    script = tmp_path / "fake_failing_bzip2"
+    script.write_text(
+        "#!/bin/sh\n"
+        f'{source_bzip2} -dc "$2"\n'
+        'echo "simulated late decompressor failure" >&2\n'
+        "exit 2\n"
+    )
+    script.chmod(0o755)
+    return script
+
+
+def test_open_archive_raises_when_parallel_tool_exits_nonzero(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+):
+    """A non-zero exit from the parallel decompressor must surface.
+
+    Reproduces the PR review finding: a decompressor that exits non-zero
+    after producing a tar stream `tarfile.open(mode="r|")` reads to
+    completion would otherwise be treated as a successful import. We use
+    a shell-script stand-in that emits a valid decompressed stream and
+    then exits 2, so tar iteration completes cleanly and the post-loop
+    subprocess-status check is the one that fires.
+    """
+    bzip2 = shutil.which("bzip2")
+    if bzip2 is None:
+        pytest.skip("bzip2 binary not available on this machine")
+    fake_tool = _fake_failing_bz2_tool(tmp_path, source_bzip2=bzip2)
+    monkeypatch.setattr(archive_module, "_parallel_bz2_tool", lambda: str(fake_tool))
+
+    archive = _make_archive(tmp_path)
+
+    with pytest.raises(ImportError_, match="exited with status 2"), open_archive(archive) as tar:
+        # Exhaust the iterator so clean_exit flips True and the
+        # returncode check fires on __exit__.
+        for m in iter_mbdump_members(tar):
+            m.file.read()
+
+
+def test_open_archive_does_not_mask_consumer_exception(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+):
+    """If the consumer raises mid-iteration, that exception propagates —
+    the subprocess's SIGPIPE-induced non-zero exit during teardown must
+    not mask the actionable root cause.
+    """
+    bzip2 = shutil.which("bzip2")
+    if bzip2 is None:
+        pytest.skip("bzip2 binary not available on this machine")
+    monkeypatch.setattr(archive_module, "_parallel_bz2_tool", lambda: bzip2)
+
+    archive = _make_archive(tmp_path)
+
+    class ConsumerFault(Exception):
+        pass
+
+    with pytest.raises(ConsumerFault), open_archive(archive) as tar:
+        for _m in iter_mbdump_members(tar):
+            raise ConsumerFault("simulated COPY failure")
