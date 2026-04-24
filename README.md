@@ -44,6 +44,8 @@ docker run -d \
   postgres:17-alpine
 ```
 
+> **Want a faster import?** Add server-start tuning flags (`shared_buffers`, `max_wal_size`, `checkpoint_timeout`, …) to roughly halve post-import DDL time. See [PostgreSQL server-side tuning (optional)](#postgresql-server-side-tuning-optional) for the tuned `docker run` and per-flag rationale.
+
 ### Install the CLI
 
 ```bash
