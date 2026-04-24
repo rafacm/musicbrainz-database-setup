@@ -176,6 +176,8 @@ uv run mypy src
 
 ## Requirements in detail
 
+### PostgreSQL server
+
 PostgreSQL **16 or later** with:
 
 - The **`cube`**, **`earthdistance`**, and **`unaccent`** extensions — declared in upstream [`admin/sql/Extensions.sql`](https://github.com/metabrainz/musicbrainz-server/blob/master/admin/sql/Extensions.sql). They ship with the `postgresql-contrib` package, which is bundled in every official [`postgres:*` Docker image](https://hub.docker.com/_/postgres).
@@ -184,11 +186,11 @@ PostgreSQL **16 or later** with:
 
 The tool pre-flights `pg_available_extensions` and `pg_collation` at startup and aborts with an actionable message if anything is missing.
 
-The **`psql` client** must be available on `$PATH` on the machine running the tool. The upstream `admin/sql/*.sql` files use psql meta-commands (`\set ON_ERROR_STOP 1`, etc.) and manage their own `BEGIN;/COMMIT;` — we shell out to `psql` for each file, mirroring `admin/InitDb.pl`'s own approach, rather than reimplementing that parsing in Python. Install it with `brew install libpq` (macOS), `apt install postgresql-client` (Debian/Ubuntu), `apk add postgresql-client` (Alpine), or the equivalent on your distro.
+The tool also works against managed PostgreSQL (RDS, Cloud SQL, etc.) as long as the role you connect as can `CREATE EXTENSION` (on RDS that's `rds_superuser`; on Cloud SQL, `postgres`).
 
-**`pbzip2` or `lbzip2` (optional, recommended).** MusicBrainz dumps ship as `.tar.bz2`, and CPython's stdlib `bz2` module is single-threaded — the decompressor tops out around 35 MB/s of compressed input on a modern laptop, which pins one Python core at 100% and leaves the Postgres backend waiting on `Client/ClientRead` for most of the COPY phase. On a 14-core machine this made COPY the dominant cost of a fresh core-module import (14 m of 27 m total). If **`pbzip2`** or **`lbzip2`** is on `$PATH`, `open_archive()` pipes the archive through it instead, so decompression runs across multiple cores and the bottleneck shifts to Postgres (where it belongs). Install with `brew install pbzip2` (macOS), `apt install pbzip2` (Debian/Ubuntu), or `apk add pbzip2` (Alpine). If neither is present the tool falls back to the stdlib decompressor transparently — nothing fails, just slower.
+### PostgreSQL server-side tuning (optional)
 
-**Server-side tuning (optional).** Stock Postgres defaults (`shared_buffers=128 MB`, `maintenance_work_mem=64 MB`, `synchronous_commit=on`, `max_wal_size=1 GB`) leave significant performance on the table during index builds and constraint validation. The tool sets per-session tuning via `PGOPTIONS` for every `admin/sql/*.sql` invocation, but a handful of knobs can only be set at server start. If you're spinning up the Postgres container yourself, the following flags roughly halve post-import DDL time:
+Stock Postgres defaults (`shared_buffers=128 MB`, `maintenance_work_mem=64 MB`, `synchronous_commit=on`, `max_wal_size=1 GB`) leave significant performance on the table during index builds and constraint validation. The tool sets per-session tuning via `PGOPTIONS` for every `admin/sql/*.sql` invocation, but a handful of knobs can only be set at server start. If you're spinning up the Postgres container yourself, the following flags roughly halve post-import DDL time:
 
 ```bash
 docker run -d --name musicbrainz-postgres \
@@ -206,9 +208,19 @@ docker run -d --name musicbrainz-postgres \
 - `max_wal_size=8GB` + `checkpoint_timeout=30min` — default 1 GB / 5 min triggers checkpoints every couple of minutes during COPY.
 - `effective_io_concurrency=200` + `random_page_cost=1.1` — signal to the planner that the underlying storage (Docker named volume on SSD) isn't a spinning disk.
 
-**Disk:** expect ~10–15 GB of downloads for `core`, ~30 GB for `core + derived`, and the live database grows to roughly 100–160 GB once indexes are built. More if `cover-art` or `event-art` are selected.
+### PostgreSQL client (`psql`)
 
-The tool also works against managed PostgreSQL (RDS, Cloud SQL, etc.) as long as the role you connect as can `CREATE EXTENSION` (on RDS that's `rds_superuser`; on Cloud SQL, `postgres`).
+The **`psql` client** must be available on `$PATH` on the machine running the tool. The upstream `admin/sql/*.sql` files use psql meta-commands (`\set ON_ERROR_STOP 1`, etc.) and manage their own `BEGIN;/COMMIT;` — we shell out to `psql` for each file, mirroring `admin/InitDb.pl`'s own approach, rather than reimplementing that parsing in Python. Install it with `brew install libpq` (macOS), `apt install postgresql-client` (Debian/Ubuntu), `apk add postgresql-client` (Alpine), or the equivalent on your distro.
+
+### Parallel bz2 decompression (`pbzip2` / `lbzip2`, optional)
+
+MusicBrainz dumps ship as `.tar.bz2`, and CPython's stdlib `bz2` module is single-threaded — the decompressor tops out around 35 MB/s of compressed input on a modern laptop, which pins one Python core at 100% and leaves the Postgres backend waiting on `Client/ClientRead` for most of the COPY phase. On a 14-core machine this made COPY the dominant cost of a fresh core-module import (14 m of 27 m total). If **`pbzip2`** or **`lbzip2`** is on `$PATH`, `open_archive()` pipes the archive through it instead, so decompression runs across multiple cores and the bottleneck shifts to Postgres (where it belongs). Install with `brew install pbzip2` (macOS), `apt install pbzip2` (Debian/Ubuntu), or `apk add pbzip2` (Alpine). If neither is present the tool falls back to the stdlib decompressor transparently — nothing fails, just slower.
+
+### Disk and memory
+
+Expect **~10–15 GB** of downloads for `core`, **~30 GB** for `core + derived`, and the live database grows to roughly **100–160 GB** once indexes are built. More if `cover-art` or `event-art` are selected.
+
+Memory is comfortable at **8 GB** for the Postgres container with the tuning above (`shared_buffers=4GB` + the per-session `maintenance_work_mem=2GB` applied during DDL); **16 GB** if you're running the client and the database on the same machine. CPython's stdlib `bz2` fallback adds no client-side memory pressure; `pbzip2` uses a small fixed buffer per thread.
 
 ## References
 
