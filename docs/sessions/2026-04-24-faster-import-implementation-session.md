@@ -172,3 +172,64 @@ All under `/tmp/`:
 ### Net verdict
 
 The PR delivers a **27 m → 21 m, −23 %** end-to-end win on a fresh core-module import. The two big wins are pbzip2 (−48 % on COPY) and parallel CREATE INDEX (−27 %). CHECK/FK validation is single-threaded in Postgres and can't be accelerated through configuration alone — that sets the natural floor at ~5 min of unavoidable seq-scan time per large FK/CHECK file. Does not reach the plan's aspirational ≤ 13 m target; a further leap would need upstream Postgres features (parallel CHECK / NOT VALID + VALIDATE split) or a restructuring of the DDL order, both out of this PR's scope.
+
+## PR #5 review feedback — subprocess exit-status silently ignored
+
+The reviewer noted (via [this PR comment](https://github.com/rafacm/musicbrainz-database-setup/pull/5#issuecomment-4312495139)):
+
+> Medium: `src/musicbrainz_database_setup/importer/archive.py` ignores the parallel decompressor subprocess exit status and discards stderr. If `pbzip2`/`lbzip2` exits non-zero after producing a tar stream that `tarfile` can finish reading, `open_archive()` still returns success and `import_archive()` can record the archive as imported. I reproduced this with a truncated `.tar.bz2`: `bzip2 -dc` returned `2`, but `open_archive()` yielded `['artist']` without raising.
+
+Real correctness bug. Diagnosis:
+
+- `stderr=subprocess.DEVNULL` discarded the decompressor's diagnostic output — any error message was thrown away.
+- `proc.wait()`'s return value was never inspected — a non-zero exit was invisible.
+- Combined, a truncated / corrupt archive where `bzip2` emitted a valid-looking tar prefix then aborted looked identical to a successful import. `import_archive()` would happily write the archive row into `musicbrainz_database_setup.imported_archives` and subsequent runs would skip it.
+
+### Fix
+
+In `importer/archive.py`:
+
+```python
+proc = subprocess.Popen(
+    [tool, "-dc", str(path)],
+    stdout=subprocess.PIPE,
+    stderr=subprocess.PIPE,          # was DEVNULL
+    bufsize=1 << 20,
+)
+
+# Drain stderr on a daemon thread so a pathologically verbose stderr
+# can't deadlock the stdout consumer (classic pipe-buffer-fill hazard).
+stderr_chunks: list[bytes] = []
+threading.Thread(target=_drain_stderr, daemon=True).start()
+
+clean_exit = False
+try:
+    with tarfile.open(fileobj=stdout_pipe, mode="r|") as tf:
+        yield tf
+    clean_exit = True
+finally:
+    stdout_pipe.close()
+    proc.wait(timeout=5)  # kill+wait on TimeoutExpired
+    stderr_thread.join(timeout=5)
+    stderr_pipe.close()
+    if clean_exit and proc.returncode != 0:
+        raise ImportError_(
+            f"{tool} exited with status {proc.returncode} while "
+            f"decompressing {path.name}: {stderr_text or '(no stderr)'}"
+        )
+```
+
+### Three design decisions worth calling out
+
+1. **Only raise on `clean_exit`.** If the caller raises mid-iteration (COPY failure, SIGINT, broken tar), `tarfile.__exit__` closes stdout → pbzip2 gets SIGPIPE on its next write → exits non-zero (typically 141). Raising on that non-zero would mask the actionable root cause. The flag gates the exception on "caller iterated to completion".
+2. **Drain stderr on a daemon thread for the subprocess's whole lifetime.** If pbzip2 emits more than ~64 KB to stderr (pathological but possible on badly-broken archives) and we only read stderr after stdout EOF, the stderr pipe fills, pbzip2 blocks on its next stderr write, and stdout never reaches EOF. Classic pipe deadlock. The thread eliminates the hazard without resorting to `communicate()`, which doesn't support streaming stdout. `list.append` is atomic under the GIL, so no lock is needed around `stderr_chunks`.
+3. **`ImportError_` from `errors.py`** (exit code 5 / `COPY`). Matches the taxonomy already used by `import_archive()` for its own wrapping exception.
+
+### New regression tests
+
+Two cases, both in `tests/unit/test_archive.py`:
+
+- `test_open_archive_raises_when_parallel_tool_exits_nonzero` — writes a shell-script stand-in at `tmp_path / "fake_failing_bzip2"` that matches the `<tool> -dc <path>` contract, invokes real `bzip2 -dc` (so `tarfile` sees a valid stream), then exits 2. Asserts `ImportError_` with `"exited with status 2"` on `__exit__`. Skips when `bzip2` is absent. An earlier attempt truncated a real `.tar.bz2` — flaky because `tarfile.open(mode="r|")` raises `ReadError` on truncated block boundaries *before* `clean_exit` flips to True, so the subprocess-status check never fires. The fake-tool approach tests the specific code path deterministically.
+- `test_open_archive_does_not_mask_consumer_exception` — consumer raises `ConsumerFault` mid-iteration on a *valid* archive; asserts `ConsumerFault` propagates out of the `with` block, not the `ImportError_` that the SIGPIPE-on-teardown would otherwise trigger. Pins the design-decision #1 behaviour.
+
+Total tests now 30, up from 28. `ruff` / `mypy --strict` / `pytest` all green.
