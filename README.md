@@ -18,6 +18,10 @@
 
 This project originated from [RAGtime](https://github.com/rafacm/ragtime), where it powers the [entity-resolution step](https://github.com/rafacm/ragtime/tree/main/doc#8--resolve-entities-status-resolving) that maps extracted mentions to canonical MusicBrainz entities.
 
+<p align="center">
+  <img src="docs/assets/musicbrainz-database-setup.gif" alt="musicbrainz-database-setup terminal demo" />
+</p>
+
 ## Requirements
 
 - PostgreSQL **16 or later** — any official [`postgres:*` Docker image](https://hub.docker.com/_/postgres) satisfies every server-side requirement out of the box.
