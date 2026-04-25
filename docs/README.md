@@ -1,28 +1,26 @@
-# `musicbrainz-database-setup` — extended documentation
+# Reference guide
 
 Long-form companion to the [project README](../README.md). Everything here is reference material — the README covers the quick-start path; this file covers what you need once you outgrow it.
 
 ## Contents
 
-- [Requirements in detail](#requirements-in-detail)
-  - [PostgreSQL server](#postgresql-server)
-  - [PostgreSQL server-side tuning (optional)](#postgresql-server-side-tuning-optional)
-  - [PostgreSQL client (`psql`)](#postgresql-client-psql)
-  - [Parallel bz2 decompression (`pbzip2` / `lbzip2`, optional)](#parallel-bz2-decompression-pbzip2--lbzip2-optional)
-  - [Disk and memory](#disk-and-memory)
+- [PostgreSQL](#postgresql)
+  - [Server](#server)
+  - [Server-side tuning (optional)](#server-side-tuning-optional)
+  - [Client (`psql`)](#client-psql)
+- [Parallel bz2 decompression (`pbzip2` / `lbzip2`, optional)](#parallel-bz2-decompression-pbzip2--lbzip2-optional)
+- [Disk and memory](#disk-and-memory)
 - [Modules](#modules)
 - [Configuration](#configuration)
   - [Splitting the connection string](#splitting-the-connection-string)
-- [Progress output](#progress-output)
 - [References](#references)
   - [MusicBrainz documentation](#musicbrainz-documentation)
   - [Upstream code](#upstream-code)
   - [Related Python tools](#related-python-tools)
-  - [PostgreSQL](#postgresql)
 
-## Requirements in detail
+## PostgreSQL
 
-### PostgreSQL server
+### Server
 
 PostgreSQL **16 or later** with:
 
@@ -34,7 +32,7 @@ The tool pre-flights `pg_available_extensions` and `pg_collation` at startup and
 
 The tool also works against managed PostgreSQL (RDS, Cloud SQL, etc.) as long as the role you connect as can `CREATE EXTENSION` (on RDS that's `rds_superuser`; on Cloud SQL, `postgres`).
 
-### PostgreSQL server-side tuning (optional)
+### Server-side tuning (optional)
 
 Stock Postgres defaults (`shared_buffers=128 MB`, `maintenance_work_mem=64 MB`, `synchronous_commit=on`, `max_wal_size=1 GB`) leave significant performance on the table during index builds and constraint validation. The tool sets per-session tuning via `PGOPTIONS` for every `admin/sql/*.sql` invocation, but a handful of knobs can only be set at server start. If you're spinning up the Postgres container yourself, the following flags roughly halve post-import DDL time:
 
@@ -56,15 +54,15 @@ docker run -d --name musicbrainz-postgres \
 
 > ⚠️ **Memory sizing.** The tool applies `maintenance_work_mem=1GB` per psql session during DDL, and CREATE INDEX can fan out to `1 + max_parallel_maintenance_workers` workers each using that budget — up to **5 GB peak** on a single statement. Combined with `shared_buffers=2GB` above, that's ~7 GB of Postgres's own memory, fitting an 8 GB Docker Desktop VM with headroom for the OS and page cache. Raising `shared_buffers` beyond 2 GB on an 8 GB VM risks OOM kills during `CreateFKConstraints.sql` / `CreateConstraints.sql` — we hit this on 2026-04-24 with `shared_buffers=4GB`.
 
-### PostgreSQL client (`psql`)
+### Client (`psql`)
 
 The **`psql` client** must be available on `$PATH` on the machine running the tool. The upstream `admin/sql/*.sql` files use psql meta-commands (`\set ON_ERROR_STOP 1`, etc.) and manage their own `BEGIN;/COMMIT;` — we shell out to `psql` for each file, mirroring `admin/InitDb.pl`'s own approach, rather than reimplementing that parsing in Python. Install it with `brew install libpq` (macOS), `apt install postgresql-client` (Debian/Ubuntu), `apk add postgresql-client` (Alpine), or the equivalent on your distro.
 
-### Parallel bz2 decompression (`pbzip2` / `lbzip2`, optional)
+## Parallel bz2 decompression (`pbzip2` / `lbzip2`, optional)
 
 MusicBrainz dumps ship as `.tar.bz2`, and CPython's stdlib `bz2` module is single-threaded — the decompressor tops out around 35 MB/s of compressed input on a modern laptop, which pins one Python core at 100% and leaves the Postgres backend waiting on `Client/ClientRead` for most of the COPY phase. On a 14-core machine this made COPY the dominant cost of a fresh core-module import (14 m of 27 m total). If **`pbzip2`** or **`lbzip2`** is on `$PATH`, `open_archive()` pipes the archive through it instead, so decompression runs across multiple cores and the bottleneck shifts to Postgres (where it belongs). Install with `brew install pbzip2` (macOS), `apt install pbzip2` (Debian/Ubuntu), or `apk add pbzip2` (Alpine). If neither is present the tool falls back to the stdlib decompressor transparently — nothing fails, just slower.
 
-### Disk and memory
+## Disk and memory
 
 Expect **~10–15 GB** of downloads for `core`, **~30 GB** for `core + derived`, and the live database grows to roughly **100–160 GB** once indexes are built. More if `cover-art` or `event-art` are selected.
 
@@ -119,10 +117,6 @@ PGPASSWORD="$(op read op://work/musicbrainz/password)" \
 
 Any libpq [environment variable](https://www.postgresql.org/docs/current/libpq-envars.html) works the same way (`PGSSLMODE`, `PGSSLROOTCERT`, `PGCONNECT_TIMEOUT`, …).
 
-## Progress output
-
-The end-to-end `run` is structured as five phases — **Locate dump → Download → Schema setup → Import tables → Schema finalize** — each preceded by a `==> Phase N/5 · <label>` banner (Homebrew-style prefix) and closed by a `✓ <label> complete · <elapsed>` footer so the transcript shows where you are at a glance. Inside each phase, the body logs the mirror URL + resolved dump, the file list being downloaded, each `admin/sql/*.sql` applied (with `(N/total)` count prefix), and each COPY'd table by schema-qualified name. Standalone subcommands map to the relevant subset (`download` covers Locate dump + Download; `schema create --phase pre/post/all` covers Schema setup / Schema finalize; `import` covers Import tables). Routine progress lines have no level prefix (matching brew / cargo conventions); `Warning:` / `Error:` records keep an explicit text label so severity stays readable even with `--no-color`. Pass `-v` / `--verbose` to surface the underlying `httpx` HTTP requests and the rest of the DEBUG-level chatter; default output stays focused on phase progress.
-
 ## References
 
 This tool is built on the following primary sources.
@@ -144,7 +138,3 @@ This tool is built on the following primary sources.
 
 - [**`acoustid/mbslave`**](https://github.com/acoustid/mbslave): Lukas Lalinsky's Python tool that handles both initial import and ongoing replication.
 - [**`acoustid/mbdata`**](https://github.com/acoustid/mbdata): SQLAlchemy models for the MusicBrainz schema. Complementary to this tool.
-
-### PostgreSQL
-
-- [**`postgres` Docker image**](https://hub.docker.com/_/postgres): the official image used in the Quick start.
