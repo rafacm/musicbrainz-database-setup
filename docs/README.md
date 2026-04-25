@@ -2,6 +2,23 @@
 
 Long-form companion to the [project README](../README.md). Everything here is reference material — the README covers the quick-start path; this file covers what you need once you outgrow it.
 
+## Contents
+
+- [Requirements in detail](#requirements-in-detail)
+  - [PostgreSQL server](#postgresql-server)
+  - [PostgreSQL server-side tuning (optional)](#postgresql-server-side-tuning-optional)
+  - [PostgreSQL client (`psql`)](#postgresql-client-psql)
+  - [Parallel bz2 decompression (`pbzip2` / `lbzip2`, optional)](#parallel-bz2-decompression-pbzip2--lbzip2-optional)
+  - [Disk and memory](#disk-and-memory)
+- [Modules](#modules)
+- [Configuration](#configuration)
+  - [Splitting the connection string](#splitting-the-connection-string)
+- [References](#references)
+  - [MusicBrainz documentation](#musicbrainz-documentation)
+  - [Upstream code](#upstream-code)
+  - [Related Python tools](#related-python-tools)
+  - [PostgreSQL](#postgresql)
+
 ## Requirements in detail
 
 ### PostgreSQL server
@@ -100,3 +117,29 @@ PGPASSWORD="$(op read op://work/musicbrainz/password)" \
 ```
 
 Any libpq [environment variable](https://www.postgresql.org/docs/current/libpq-envars.html) works the same way (`PGSSLMODE`, `PGSSLROOTCERT`, `PGCONNECT_TIMEOUT`, …).
+
+## References
+
+This tool is built on the following primary sources.
+
+### MusicBrainz documentation
+
+- [**Database / Download**](https://wiki.musicbrainz.org/MusicBrainz_Database/Download): mirror layout, dump cadence, checksum/signature files.
+- [**Database / Schema**](https://wiki.musicbrainz.org/MusicBrainz_Database/Schema): PG version and extension requirements.
+- [**MusicBrainz Entity**](https://musicbrainz.org/doc/MusicBrainz_Entity): the entity model and which entities are core vs derived.
+- [**Development / JSON Data Dumps**](https://musicbrainz.org/doc/Development/JSON_Data_Dumps): JSON dump format (out of scope for this tool).
+
+### Upstream code
+
+- [**`metabrainz/musicbrainz-server/admin/sql/`**](https://github.com/metabrainz/musicbrainz-server/tree/master/admin/sql): the canonical DDL this tool applies (`Extensions.sql`, `CreateCollations.sql`, `CreateTypes.sql`, `CreateTables.sql`, …, `CreateTriggers.sql`).
+- [**`metabrainz/musicbrainz-server/admin/`**](https://github.com/metabrainz/musicbrainz-server/tree/master/admin): `InitDb.pl` (authoritative DDL phase order) and `MBImport.pl` (reference for the COPY loop).
+- [**`metabrainz/musicbrainz-docker`**](https://github.com/metabrainz/musicbrainz-docker): upstream's official Docker-compose stack. A useful reference for how upstream provisions Postgres, but not a dependency of this tool.
+
+### Related Python tools
+
+- [**`acoustid/mbslave`**](https://github.com/acoustid/mbslave): Lukas Lalinsky's Python tool that handles both initial import and ongoing replication.
+- [**`acoustid/mbdata`**](https://github.com/acoustid/mbdata): SQLAlchemy models for the MusicBrainz schema. Complementary to this tool.
+
+### PostgreSQL
+
+- [**`postgres` Docker image**](https://hub.docker.com/_/postgres): the official image used in the Quick start.
