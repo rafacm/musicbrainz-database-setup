@@ -70,6 +70,8 @@ def import_archive(
     archive_path: Path,
     *,
     force: bool = False,
+    index: int = 1,
+    total: int = 1,
 ) -> None:
     """Import one MusicBrainz dump archive in a single transaction."""
     archive_name = archive_path.name
@@ -77,13 +79,18 @@ def import_archive(
     ensure_bookkeeping(conn)
 
     if not force and already_imported(conn, archive_name):
-        log.info("Archive %s already imported — skipping.", archive_name)
+        log.info(
+            "(%d/%d) Archive %s already imported — skipping.",
+            index,
+            total,
+            archive_name,
+        )
         return
 
     schema_seq = read_metadata_file(archive_path, "SCHEMA_SEQUENCE")
     replication_seq = read_metadata_file(archive_path, "REPLICATION_SEQUENCE")
 
-    log.info("Importing tables from %s", archive_name)
+    log.info("(%d/%d) Importing tables from %s", index, total, archive_name)
     start = time.monotonic()
     tables_total = 0
     try:
@@ -98,7 +105,9 @@ def import_archive(
         conn.rollback()
         raise ImportError_(f"Import of {archive_name} failed: {exc}") from exc
     log.info(
-        "✓ Imported %s · %d tables · %s",
+        "✓ (%d/%d) Imported %s · %d tables · %s",
+        index,
+        total,
         archive_name,
         tables_total,
         format_elapsed(time.monotonic() - start),

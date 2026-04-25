@@ -94,9 +94,16 @@ def _global(
     verbose: Annotated[bool, typer.Option("-v", "--verbose")] = False,
     quiet: Annotated[bool, typer.Option("--quiet")] = False,
     log_file: Annotated[Path | None, typer.Option("--log-file")] = None,
+    no_color: Annotated[
+        bool,
+        typer.Option(
+            "--no-color",
+            help="Disable ANSI colours in stderr output. NO_COLOR env var also honoured.",
+        ),
+    ] = False,
     version: Annotated[bool, typer.Option("--version", help="Print version and exit.")] = False,
 ) -> None:
-    configure(verbose=verbose, quiet=quiet, log_file=log_file)
+    configure(verbose=verbose, quiet=quiet, log_file=log_file, no_color=no_color)
     if version:
         typer.echo(__version__)
         raise typer.Exit(0)
@@ -201,9 +208,15 @@ def download(
                     len(archive_names),
                     ", ".join(archive_names),
                 )
-                for archive_name in archive_names:
+                for index, archive_name in enumerate(archive_names, start=1):
                     dl.download_archive(
-                        chosen, archive_name, dest, checksums=checksums, verify=verify_flag
+                        chosen,
+                        archive_name,
+                        dest,
+                        checksums=checksums,
+                        verify=verify_flag,
+                        index=index,
+                        total=len(archive_names),
                     )
 
 
@@ -248,12 +261,19 @@ def import_(
     """Stream the TSVs from each archive into COPY FROM STDIN."""
     with _handle_errors():
         mods = _parse_modules(modules)
+        archive_names = list(manifest.archives_for(mods))
         with connect(db) as conn, progress_session(), phase_section(RunPhase.IMPORT):
-            for archive_name in manifest.archives_for(mods):
+            for index, archive_name in enumerate(archive_names, start=1):
                 archive_path = dump_dir / archive_name
                 if not archive_path.exists():
                     raise UserError(f"Archive not found: {archive_path}")
-                import_archive(conn, archive_path, force=force)
+                import_archive(
+                    conn,
+                    archive_path,
+                    force=force,
+                    index=index,
+                    total=len(archive_names),
+                )
 
 
 # ------------------------------------------------------------------------ run
@@ -290,17 +310,23 @@ def run(
                     chosen = None
                     checksums = None
 
+            archive_names = list(manifest.archives_for(mods))
+
             if chosen is not None and checksums is not None:
                 with phase_section(RunPhase.DOWNLOAD):
-                    archive_names = list(manifest.archives_for(mods))
                     log.info(
                         "Downloading %d file(s): %s",
                         len(archive_names),
                         ", ".join(archive_names),
                     )
-                    for archive_name in archive_names:
+                    for index, archive_name in enumerate(archive_names, start=1):
                         dl.download_archive(
-                            chosen, archive_name, dump_dir, checksums=checksums
+                            chosen,
+                            archive_name,
+                            dump_dir,
+                            checksums=checksums,
+                            index=index,
+                            total=len(archive_names),
                         )
 
             with connect(db) as conn:
@@ -308,8 +334,13 @@ def run(
                 with phase_section(RunPhase.SCHEMA_PRE):
                     orch.run_pre_import()
                 with phase_section(RunPhase.IMPORT):
-                    for archive_name in manifest.archives_for(mods):
-                        import_archive(conn, dump_dir / archive_name)
+                    for index, archive_name in enumerate(archive_names, start=1):
+                        import_archive(
+                            conn,
+                            dump_dir / archive_name,
+                            index=index,
+                            total=len(archive_names),
+                        )
                 with phase_section(RunPhase.SCHEMA_POST):
                     orch.run_post_import()
 

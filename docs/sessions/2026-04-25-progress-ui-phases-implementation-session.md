@@ -162,3 +162,40 @@ uv run pytest -q              # 42 passed in 0.53s
 ```
 
 Updated CHANGELOG, README, this implementation transcript, and the feature doc to reflect the refined phase labels and the additional UX changes.
+
+### User — Evil Martians article review
+
+> Review the current CLI UX against the guidelines in this article https://evilmartians.com/chronicles/cli-ux-best-practices-3-patterns-for-improving-progress-displays
+
+### Assistant — review
+
+Fetched the article via `WebFetch` and extracted 15 concrete guidelines across the three patterns (spinners, X of Y, progress bars) plus an output/logging cluster. Reported a per-guideline assessment back to the user with pass/partial/fail markers, then proposed five concrete follow-up items sorted by impact/effort:
+
+1. Add `(N/total)` count prefix on per-DDL-file and per-archive log lines.
+2. Colour the `✓` symbol bold green via a Rich Highlighter (no markup in messages so `--log-file` stays clean).
+3. Reword phase footer to past-tense `✓ <label> complete · <elapsed>` so it reads grammatically for noun labels.
+4. Add a global `--no-color` flag (Typer callback) that sets `NO_COLOR=1` before Console init.
+5. Sort out `pg_stat_progress_*` polling for slow DDL — out of scope for this PR, file an issue.
+
+### User — direction
+
+> yes. For 6 create an issue with the details so we can tackle it in the future
+
+### Assistant — round-2 implementation
+
+- **(N/total) prefix.** Threaded `index` / `total` kwargs through `Orchestrator._run_file`, `download_archive`, and `import_archive`. CLI call sites materialize the file/archive manifests with `list(...)` and call with `enumerate(..., start=1)`. Per-table COPY lines deliberately stay count-less because `tarfile.open(mode="r|bz2")` is streaming-only and can't enumerate members up-front.
+- **Green checkmark.** Wrote `_CheckmarkHighlighter(Highlighter)` in `logging.py` and attached it via `RichHandler(highlighter=…)`. Walks `Text.plain`, calls `text.stylize("bold green", i, i+1)` for each `✓`. The log message string stays plain so the file handler gets `✓` literal — verified by reading the existing `--log-file` formatter (no markup parsing).
+- **Past-tense footer.** One-line change in `ui/phases.py:phase_section`: `"✓ %s · %s"` → `"✓ %s complete · %s"`. Updated the two assertions in `test_ui_phases.py`.
+- **`--no-color` flag.** Added a `no_color: bool` kwarg to `configure()`; sets `os.environ["NO_COLOR"] = "1"` and calls a new `_reset_console()` helper *before* constructing the RichHandler, because Rich reads the env var only at `Console.__init__`. The CLI global callback gained a matching `--no-color` Typer option. New `test_logging.py` tests pin both the flag (`Console.no_color is True`) and the default leaving the env var untouched.
+
+### Assistant — verification
+
+```
+uv run ruff check src tests   # All checks passed!
+uv run mypy src               # Success: no issues found in 29 source files
+uv run pytest -q              # 44 passed in 0.60s
+```
+
+### Assistant — issue filing for slow-DDL progress polling
+
+Created [issue #8](https://github.com/rafacm/musicbrainz-database-setup/issues/8) — "Show real progress for slow DDL phases via `pg_stat_progress_*` polling" — covering the existing `psql.py:108-111` TODO comment with a concrete proposal: open a side psycopg connection, poll `pg_stat_progress_create_index` once per second while a DDL spinner is active, surface the inner phase + `blocks_done/blocks_total` into the Rich task description. Caveat noted: not every DDL has a progress view (only CREATE INDEX, VACUUM, ANALYZE, COPY, CLUSTER, BASE_BACKUP, CREATE_INDEX). Linked to the PostgreSQL [Progress Reporting docs](https://www.postgresql.org/docs/current/progress-reporting.html).

@@ -87,14 +87,16 @@ class Orchestrator:
         self.ensure_schemas()
         self.conn.commit()
 
-        for sqlfile in manifest.pre_import_files(self.modules):
-            self._run_file(sqlfile, phase_group="pre")
+        files = manifest.pre_import_files(self.modules)
+        for index, sqlfile in enumerate(files, start=1):
+            self._run_file(sqlfile, phase_group="pre", index=index, total=len(files))
 
     def run_post_import(self) -> None:
         ensure_psql_available()
         self.ensure_bookkeeping()
-        for sqlfile in manifest.post_import_files(self.modules):
-            self._run_file(sqlfile, phase_group="post")
+        files = manifest.post_import_files(self.modules)
+        for index, sqlfile in enumerate(files, start=1):
+            self._run_file(sqlfile, phase_group="post", index=index, total=len(files))
 
     def run(self, phase: Phase) -> None:
         if phase in (Phase.PRE, Phase.ALL):
@@ -104,10 +106,17 @@ class Orchestrator:
 
     # -------------------------------------------------------------- internals
 
-    def _run_file(self, sqlfile: SqlFile, *, phase_group: str) -> None:
+    def _run_file(
+        self,
+        sqlfile: SqlFile,
+        *,
+        phase_group: str,
+        index: int,
+        total: int,
+    ) -> None:
         phase_key = f"{phase_group}:{sqlfile.repo_path}"
         if self._already_applied(phase_key):
-            log.info("Skipping %s (already applied)", phase_key)
+            log.info("(%d/%d) Skipping %s (already applied)", index, total, phase_key)
             return
 
         local = github.fetch(sqlfile.repo_path, sha=self.sha, cache_root=self.cache_root)
@@ -119,7 +128,11 @@ class Orchestrator:
         start = time.monotonic()
         run_sql_file(self.conn, local)
         log.info(
-            "✓ Applied %s · %.1fs", sqlfile.repo_path, time.monotonic() - start
+            "✓ (%d/%d) Applied %s · %.1fs",
+            index,
+            total,
+            sqlfile.repo_path,
+            time.monotonic() - start,
         )
 
         # Record applied-phase bookkeeping in its own small transaction.

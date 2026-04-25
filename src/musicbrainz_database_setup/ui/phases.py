@@ -73,4 +73,12 @@ def phase_section(
 
     start = time.monotonic()
     yield
-    log.info("✓ %s · %s", phase.value, format_elapsed(time.monotonic() - start))
+    # Past-tense "complete" suffix uniform across all phases keeps the footer
+    # grammatical regardless of whether the label itself is a verb ("Download"),
+    # noun ("Schema setup"), or imperative phrase ("Locate dump") — see
+    # https://evilmartians.com/chronicles/cli-ux-best-practices-3-patterns-for-improving-progress-displays
+    log.info(
+        "✓ %s complete · %s",
+        phase.value,
+        format_elapsed(time.monotonic() - start),
+    )
