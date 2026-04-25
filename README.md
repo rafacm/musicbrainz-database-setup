@@ -121,15 +121,15 @@ Pass `--modules core,derived,…` (comma-separated) to select which `.tar.bz2` a
 
 Run `uv run musicbrainz-database-setup --help` to see the available commands and options at any time.
 
-- `list-dumps` — print the dated dump directories on the mirror.
-- `download` — fetch the selected archives (SHA256-verified, resumable).
-- `schema create` — fetch `admin/sql/*.sql` at `--ref` and apply pre- and/or post-import DDL.
-- `import` — stream TSVs from a local `--dump-dir` through `COPY FROM STDIN`.
-- `run` — end-to-end: pick or resolve a dump, download, pre-DDL, import, post-DDL, `VACUUM ANALYZE`.
-- `verify` — print `SCHEMA_SEQUENCE` / `REPLICATION_SEQUENCE` for each local archive.
-- `clean` — remove cached downloads.
+- `list-dumps`: print the dated dump directories on the mirror.
+- `download`: fetch the selected archives (SHA256-verified, resumable).
+- `schema create`: fetch `admin/sql/*.sql` at `--ref` and apply pre- and/or post-import DDL.
+- `import`: stream TSVs from a local `--dump-dir` through `COPY FROM STDIN`.
+- `run`: end-to-end — pick or resolve a dump, download, pre-DDL, import, post-DDL, `VACUUM ANALYZE`.
+- `verify`: print `SCHEMA_SEQUENCE` / `REPLICATION_SEQUENCE` for each local archive.
+- `clean`: remove cached downloads.
 
-The end-to-end `run` is structured as five phases — **Locate dump → Download → Schema setup → Import tables → Schema finalize** — each preceded by a `==> Phase N/5 · <label>` banner (Homebrew-style prefix) and closed by a `✓ <label> complete · <elapsed>` footer so the transcript shows where you are at a glance. Inside each phase, the body logs the mirror URL + resolved dump, the file list being downloaded, each `admin/sql/*.sql` applied (with `(N/total)` count prefix), and each COPY'd table by schema-qualified name. Standalone subcommands map to the relevant subset (`download` covers Locate dump + Download; `schema create --phase pre/post/all` covers Schema setup / Schema finalize; `import` covers Import tables). Routine progress lines have no level prefix (matching brew / cargo conventions); `Warning:` / `Error:` records keep an explicit text label so severity stays readable even with `--no-color`. Pass `-v` / `--verbose` to surface the underlying `httpx` HTTP requests and the rest of the DEBUG-level chatter; default output stays focused on phase progress.
+See [Progress output](docs/README.md#progress-output) in `docs/README.md` for the 5-phase breakdown of `run` and the per-phase output format.
 
 ## Status
 

@@ -13,6 +13,7 @@ Long-form companion to the [project README](../README.md). Everything here is re
 - [Modules](#modules)
 - [Configuration](#configuration)
   - [Splitting the connection string](#splitting-the-connection-string)
+- [Progress output](#progress-output)
 - [References](#references)
   - [MusicBrainz documentation](#musicbrainz-documentation)
   - [Upstream code](#upstream-code)
@@ -117,6 +118,10 @@ PGPASSWORD="$(op read op://work/musicbrainz/password)" \
 ```
 
 Any libpq [environment variable](https://www.postgresql.org/docs/current/libpq-envars.html) works the same way (`PGSSLMODE`, `PGSSLROOTCERT`, `PGCONNECT_TIMEOUT`, …).
+
+## Progress output
+
+The end-to-end `run` is structured as five phases — **Locate dump → Download → Schema setup → Import tables → Schema finalize** — each preceded by a `==> Phase N/5 · <label>` banner (Homebrew-style prefix) and closed by a `✓ <label> complete · <elapsed>` footer so the transcript shows where you are at a glance. Inside each phase, the body logs the mirror URL + resolved dump, the file list being downloaded, each `admin/sql/*.sql` applied (with `(N/total)` count prefix), and each COPY'd table by schema-qualified name. Standalone subcommands map to the relevant subset (`download` covers Locate dump + Download; `schema create --phase pre/post/all` covers Schema setup / Schema finalize; `import` covers Import tables). Routine progress lines have no level prefix (matching brew / cargo conventions); `Warning:` / `Error:` records keep an explicit text label so severity stays readable even with `--no-color`. Pass `-v` / `--verbose` to surface the underlying `httpx` HTTP requests and the rest of the DEBUG-level chatter; default output stays focused on phase progress.
 
 ## References
 
