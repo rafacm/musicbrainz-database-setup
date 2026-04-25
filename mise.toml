@@ -1,0 +1,42 @@
+# Demo-recording configuration. Override the port at the call site, e.g.:
+#   POSTGRES_PORT=5444 mise run docs:demo-record
+
+[tasks."docs:demo-record"]
+description = "Start a demo Postgres container, then record a terminal session for the README GIF (Ctrl-D to stop)"
+env = { POSTGRES_PORT = "5433", DEMO_CONTAINER = "musicbrainz-database-setup-demo" }
+run = """
+docker rm -f "$DEMO_CONTAINER" >/dev/null 2>&1 || true
+docker run -d \\
+  --name "$DEMO_CONTAINER" \\
+  -e POSTGRES_PASSWORD=postgres \\
+  -p "${POSTGRES_PORT}:5432" \\
+  postgres:17-alpine
+echo
+echo "Postgres is running on localhost:${POSTGRES_PORT} (container: $DEMO_CONTAINER)."
+echo "Use this connection string when recording:"
+echo "  postgresql://postgres:postgres@localhost:${POSTGRES_PORT}/postgres"
+echo
+echo "Recording starts now. Press Ctrl-D to stop."
+echo
+PROMPT='$ ' RPROMPT='' precmd_functions=() asciinema record \\
+  --window-size 100x25 \\
+  --overwrite \\
+  docs/assets/musicbrainz-database-setup.cast
+"""
+
+[tasks."docs:demo-render"]
+description = "Render docs/assets/musicbrainz-database-setup.gif from the recorded .cast"
+run = """
+agg \\
+  --font-family 'FiraCode Nerd Font Mono' \\
+  --speed 10 \\
+  --fps-cap 60 \\
+  --theme monokai \\
+  docs/assets/musicbrainz-database-setup.cast \\
+  docs/assets/musicbrainz-database-setup.gif
+"""
+
+[tasks."docs:demo-cleanup"]
+description = "Remove the demo Postgres container created by docs:demo-record"
+env = { DEMO_CONTAINER = "musicbrainz-database-setup-demo" }
+run = 'docker rm -f "$DEMO_CONTAINER"'
