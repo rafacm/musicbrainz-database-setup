@@ -36,6 +36,7 @@ def configure(
         console=get_console(),
         show_time=False,
         show_path=False,
+        show_level=False,
         markup=False,
         rich_tracebacks=True,
     )

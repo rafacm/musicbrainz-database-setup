@@ -114,3 +114,51 @@ Wrote per AGENTS.md:
 - This implementation transcript.
 - `CHANGELOG.md` entry under `## 2026-04-25` (`### Changed`) linking the plan + feature + both transcripts.
 - `README.md` short note in the "Supported commands" section about phase headers and `-v`-gated httpx output.
+
+### User — review feedback after the first end-to-end test
+
+After the first test run on PR #7 the user attached four screenshots and listed nine concrete refinements:
+
+1. **Phase 1 "Mirror"** — opaque label; the user couldn't tell which mirror was being used or what the `✓ Mirror · 1.4s` footer represented.
+2. **Phase 2 "Download"** — `✓ Download · 1:36` didn't say what was downloaded (one file? several?).
+3. **Phase 3 "Schema (pre)"** — `(pre)` is jargon; the per-file lines (`admin/sql/Extensions.sql`) read as bare paths with no verb context. Suggested prefixing with "File" or a better user-facing label.
+4. **Phase 4 "Import"** — the per-table COPY rows vanish on completion, leaving no record of what was imported. The `✓ Imported mbdump.tar.bz2 · 177 tables · 7:20` and `✓ Import · 7:20` footers were nearly identical. Suggested renaming to "Import tables".
+5. **Phase 5 "Schema (post)"** — same `(post)` jargon issue; the user wanted the actual work (primary keys, indexes, constraints) to be more visible.
+6. **The Download progress bar lingered** through phases 3, 4, and 5 — it stayed in the live region until the run finished.
+7. **Long byte numbers** in the progress bars (raw byte counts alongside the human-readable MiB/GiB column).
+8. **"INFO" prefix** on every line — the user asked whether it was a leftover from generic logging or actually load-bearing.
+
+### Assistant — refinements
+
+Decided on action-oriented phase labels and addressed each point:
+
+- **Phase rename + body logs** in `ui/phases.py` and `cli.py`:
+  - `MIRROR = "Locate dump"` — the body now logs `Mirror: <url>`, `SQL ref <ref> → <SHA>`, `Selected dump: <name>`, and `Local cache: <path>` so the URLs are visible inline.
+  - `DOWNLOAD = "Download"` (kept) — the body now logs `Downloading N file(s): <comma-separated names>` before the loop; per-archive completion logs `✓ Downloaded <archive> · <size>` (added in `mirror/download.py`).
+  - `SCHEMA_PRE = "Schema setup"` — clearer than "(pre)"; pairs with "Schema finalize".
+  - `IMPORT = "Import tables"` — direct adoption of the user's suggested label; differentiates the phase footer (`✓ Import tables · 7:20`) from the per-archive line (`✓ Imported mbdump.tar.bz2 · 177 tables · 7:20`).
+  - `SCHEMA_POST = "Schema finalize"` — explicit about its role (keys, indexes, constraints, triggers) without enumerating every file in the label.
+- **Per-DDL-file label** in `schema/orchestrator.py:_run_file`: completion log changed from `✓ admin/sql/Extensions.sql (0.1s)` to `✓ Applied admin/sql/Extensions.sql · 0.1s` — explicit verb prefix, middle-dot separator that visually pairs with phase footers.
+- **Per-table import log** in `importer/copy.py:_copy_member`: each successful COPY now emits `✓ Table <schema>.<table> · <size>` so the imported table list is durable in scrollback (177 lines for a core import — useful, not noisy). Per-archive header changed to `Importing tables from <archive>` to match the phase label.
+- **Lingering download row** in `mirror/download.py`: added `pm.remove_task(task_id)` in a `finally` block. The progress row now disappears the moment the archive verifies and gets renamed.
+- **MofN column drop** in `progress.py`: removed `MofNCompleteColumn`. For byte-based tasks the `DownloadColumn(binary_units=True)` already shows progress in human units; the M-of-N column was duplicating the same totals as raw byte counts (the long numbers the user objected to).
+- **INFO prefix removed** in `logging.py`: set `RichHandler(show_level=False)`. Verified Rich still styles WARNING / ERROR message bodies in their per-level colours (yellow / red) so severity remains visible without the textual label. Confirmed via the existing test_cli.py traceback test which still passes (the assertion is on the message body, not the level prefix).
+- **`format_size` helper** added to `ui/phases.py` so the per-table and per-archive size logs use the same vocabulary as Rich's progress column.
+
+### Assistant — test updates
+
+Extended `tests/unit/test_ui_phases.py` with two new tests:
+- `test_phase_labels_are_action_oriented` pins each enum value to the new label so a casual rename surfaces in code review.
+- `test_format_size_uses_binary_units` covers each unit transition (B → KiB → MiB → GiB → TiB).
+
+Updated existing assertions for `Schema (pre)` → `Schema setup` and `Import` → `Import tables`.
+
+### Assistant — verification
+
+```
+uv run ruff check src tests   # All checks passed!
+uv run mypy src               # Success: no issues found in 29 source files
+uv run pytest -q              # 42 passed in 0.53s
+```
+
+Updated CHANGELOG, README, this implementation transcript, and the feature doc to reflect the refined phase labels and the additional UX changes.

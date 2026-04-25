@@ -13,6 +13,7 @@ from musicbrainz_database_setup.mirror.checksums import Checksums, parse, verify
 from musicbrainz_database_setup.mirror.client import http_client
 from musicbrainz_database_setup.mirror.index import DumpDirectory
 from musicbrainz_database_setup.progress import ProgressManager
+from musicbrainz_database_setup.ui.phases import format_size
 
 log = logging.getLogger(__name__)
 
@@ -88,10 +89,16 @@ def download_archive(
                     pm.advance(task_id, len(chunk))
     except httpx.HTTPError as exc:
         raise NetworkError(f"Download of {url} failed: {exc}") from exc
+    finally:
+        # Drop the row from the live progress table so the bar doesn't linger
+        # in the display through the next phase. The completion log line below
+        # is the durable scrollback record.
+        pm.remove_task(task_id)
 
     if verify and expected is not None:
         verify_file(part, expected, checksums.algo)
     part.replace(final)
+    log.info("✓ Downloaded %s · %s", archive_name, format_size(final.stat().st_size))
     return final
 
 

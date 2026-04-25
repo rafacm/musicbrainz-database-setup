@@ -188,12 +188,20 @@ def download(
             return
         with progress_session():
             with phase_section(RunPhase.MIRROR):
+                log.info("Mirror: %s", mirror)
                 chosen = _resolve_dump_dir(mirror, date=date, latest=latest, yes=yes)
+                log.info("Selected dump: %s", chosen.name)
                 dest = _workdir_for(workdir, chosen)
-                log.info("Downloading to %s", dest)
+                log.info("Local cache: %s", dest)
                 checksums = dl.fetch_checksums(chosen)
             with phase_section(RunPhase.DOWNLOAD):
-                for archive_name in manifest.archives_for(mods):
+                archive_names = list(manifest.archives_for(mods))
+                log.info(
+                    "Downloading %d file(s): %s",
+                    len(archive_names),
+                    ", ".join(archive_names),
+                )
+                for archive_name in archive_names:
                     dl.download_archive(
                         chosen, archive_name, dest, checksums=checksums, verify=verify_flag
                     )
@@ -213,7 +221,7 @@ def schema_create(
     with _handle_errors():
         mods = _parse_modules(modules)
         sha = github.resolve_ref(ref)
-        log.info("Resolved %s → %s", ref, sha[:12])
+        log.info("SQL ref %s → %s", ref, sha[:12])
         with connect(db) as conn, progress_session():
             orch = Orchestrator(conn, sha=sha, modules=mods)
             if phase in (Phase.PRE, Phase.ALL):
@@ -268,19 +276,29 @@ def run(
         mods = _parse_modules(modules)
         with progress_session():
             with phase_section(RunPhase.MIRROR):
+                log.info("Mirror: %s", mirror)
                 sha = github.resolve_ref(ref)
-                log.info("Resolved %s → %s", ref, sha[:12])
+                log.info("SQL ref %s → %s", ref, sha[:12])
                 if dump_dir is None:
                     chosen = _resolve_dump_dir(mirror, date=date, latest=latest, yes=yes)
+                    log.info("Selected dump: %s", chosen.name)
                     dump_dir = _workdir_for(workdir, chosen)
+                    log.info("Local cache: %s", dump_dir)
                     checksums = dl.fetch_checksums(chosen)
                 else:
+                    log.info("Using local dump dir: %s", dump_dir)
                     chosen = None
                     checksums = None
 
             if chosen is not None and checksums is not None:
                 with phase_section(RunPhase.DOWNLOAD):
-                    for archive_name in manifest.archives_for(mods):
+                    archive_names = list(manifest.archives_for(mods))
+                    log.info(
+                        "Downloading %d file(s): %s",
+                        len(archive_names),
+                        ", ".join(archive_names),
+                    )
+                    for archive_name in archive_names:
                         dl.download_archive(
                             chosen, archive_name, dump_dir, checksums=checksums
                         )

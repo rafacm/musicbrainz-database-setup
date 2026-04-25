@@ -17,6 +17,7 @@ from musicbrainz_database_setup.ui.phases import (
     PHASE_ORDER,
     RunPhase,
     format_elapsed,
+    format_size,
     phase_section,
 )
 
@@ -49,6 +50,16 @@ def test_phase_order_lists_all_runphase_members() -> None:
     assert set(PHASE_ORDER) == set(RunPhase)
 
 
+def test_phase_labels_are_action_oriented() -> None:
+    # Pin the user-facing labels so a casual rename doesn't slip through code
+    # review. These strings appear verbatim in banners + footers.
+    assert RunPhase.MIRROR.value == "Locate dump"
+    assert RunPhase.DOWNLOAD.value == "Download"
+    assert RunPhase.SCHEMA_PRE.value == "Schema setup"
+    assert RunPhase.IMPORT.value == "Import tables"
+    assert RunPhase.SCHEMA_POST.value == "Schema finalize"
+
+
 def test_format_elapsed_under_a_minute() -> None:
     assert format_elapsed(0.05) == "0.1s"
     assert format_elapsed(12.34) == "12.3s"
@@ -59,6 +70,16 @@ def test_format_elapsed_minute_or_more() -> None:
     assert format_elapsed(60) == "1:00"
     assert format_elapsed(125) == "2:05"
     assert format_elapsed(3599) == "59:59"
+
+
+def test_format_size_uses_binary_units() -> None:
+    assert format_size(0) == "0.0 B"
+    assert format_size(512) == "512.0 B"
+    assert format_size(1536) == "1.5 KiB"
+    assert format_size(2 * 1024**2) == "2.0 MiB"
+    assert format_size(1.2 * 1024**3) == "1.2 GiB"
+    # Large enough to overflow GiB → TiB.
+    assert format_size(3 * 1024**4) == "3.0 TiB"
 
 
 def test_phase_section_emits_banner_and_footer_on_success(
@@ -72,9 +93,9 @@ def test_phase_section_emits_banner_and_footer_on_success(
     err = capsys.readouterr().err
     # Banner: position in PHASE_ORDER is 3 (1-indexed) of 5.
     assert "Phase 3/5" in err
-    assert "Schema (pre)" in err
+    assert "Schema setup" in err
     # Footer with elapsed time.
-    assert "✓ Schema (pre) ·" in err
+    assert "✓ Schema setup ·" in err
 
 
 def test_phase_section_emits_no_footer_on_exception(
@@ -88,6 +109,6 @@ def test_phase_section_emits_no_footer_on_exception(
     err = capsys.readouterr().err
     # Banner still appears so the user sees which phase blew up …
     assert "Phase 4/5" in err
-    assert "Import" in err
+    assert "Import tables" in err
     # … but the success footer must not.
-    assert "✓ Import" not in err
+    assert "✓ Import tables" not in err

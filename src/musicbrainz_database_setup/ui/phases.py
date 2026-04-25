@@ -21,11 +21,11 @@ log = logging.getLogger(__name__)
 
 
 class RunPhase(StrEnum):
-    MIRROR = "Mirror"
+    MIRROR = "Locate dump"
     DOWNLOAD = "Download"
-    SCHEMA_PRE = "Schema (pre)"
-    IMPORT = "Import"
-    SCHEMA_POST = "Schema (post)"
+    SCHEMA_PRE = "Schema setup"
+    IMPORT = "Import tables"
+    SCHEMA_POST = "Schema finalize"
 
 
 PHASE_ORDER: tuple[RunPhase, ...] = (
@@ -43,6 +43,16 @@ def format_elapsed(seconds: float) -> str:
         return f"{seconds:.1f}s"
     minutes, secs = divmod(int(round(seconds)), 60)
     return f"{minutes}:{secs:02d}"
+
+
+def format_size(num_bytes: float) -> str:
+    """Render a byte count in binary units (KiB / MiB / GiB / TiB)."""
+    n = float(num_bytes)
+    for unit in ("B", "KiB", "MiB", "GiB", "TiB"):
+        if n < 1024 or unit == "TiB":
+            return f"{n:.1f} {unit}"
+        n /= 1024
+    return f"{n:.1f} TiB"
 
 
 @contextmanager
