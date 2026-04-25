@@ -38,10 +38,17 @@ PHASE_ORDER: tuple[RunPhase, ...] = (
 
 
 def format_elapsed(seconds: float) -> str:
-    """Render an elapsed duration: ``0.1s`` under a minute, ``M:SS`` above."""
+    """Render an elapsed duration: ``0.1s`` under a minute, ``M:SS`` under an
+    hour, ``H:MM:SS`` from one hour up. Multi-hour rendering matters for the
+    end-of-run summary on a full multi-module import.
+    """
     if seconds < 60:
         return f"{seconds:.1f}s"
-    minutes, secs = divmod(int(round(seconds)), 60)
+    total = int(round(seconds))
+    hours, rest = divmod(total, 3600)
+    minutes, secs = divmod(rest, 60)
+    if hours > 0:
+        return f"{hours}:{minutes:02d}:{secs:02d}"
     return f"{minutes}:{secs:02d}"
 
 
@@ -88,3 +95,18 @@ def phase_section(
         phase.value,
         format_elapsed(time.monotonic() - start),
     )
+
+
+@contextmanager
+def run_summary(label: str = "Run complete") -> Iterator[None]:
+    """Time a top-level command and emit a brew-style summary line on success.
+
+    Renders ``==> <label> · <elapsed>`` to the shared stderr Console *only* on
+    clean exit. On exception the summary is suppressed — ``cli._handle_errors``
+    owns the error rendering and a "Run complete" line after a failed run
+    would mislead.
+    """
+    start = time.monotonic()
+    yield
+    elapsed = format_elapsed(time.monotonic() - start)
+    get_console().print(f"[bold blue]==>[/] [bold]{label} · {elapsed}[/]")

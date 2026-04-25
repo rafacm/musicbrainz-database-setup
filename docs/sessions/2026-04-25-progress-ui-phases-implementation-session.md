@@ -289,3 +289,51 @@ uv run pytest -q              # 47 passed in 0.38s
 ```
 
 Replied to both review comments via `gh api repos/.../pulls/7/comments` linking the commit that addresses each.
+
+### User — end-of-run summary
+
+After running the tool end-to-end successfully against `postgres:17-alpine` (core module, latest dump, 7:15 import + 13:15 schema finalize), the user noted there was no clear "all done" marker:
+
+> When the tool is finished it would be good to show information like total elapsed time for instance.
+
+### Assistant — implementation
+
+Added `run_summary` context manager to `ui/phases.py` (parallel to `phase_section`):
+
+```python
+@contextmanager
+def run_summary(label: str = "Run complete") -> Iterator[None]:
+    start = time.monotonic()
+    yield
+    elapsed = format_elapsed(time.monotonic() - start)
+    get_console().print(f"[bold blue]==>[/] [bold]{label} · {elapsed}[/]")
+```
+
+`yield` without `try/finally` means the `console.print` only runs on clean exit — exception unwinds straight through, summary is suppressed. Same pattern as `phase_section`'s footer.
+
+Wired into `cli.run` as a second context manager alongside `_handle_errors`:
+
+```python
+with _handle_errors(), run_summary():
+    ... 5 phases ...
+```
+
+The brew-style `==> Run complete · 21:00` line lands as the final marker after `✓ Schema finalize complete · 13:15`. Visual hierarchy:
+
+- `==> Phase N/5 · <label>` — phase start (bold blue)
+- `✓ <label> complete · <elapsed>` — phase end (green ✓)
+- `==> Run complete · <total>` — overall end (bold blue, mirrors phase banner style)
+
+Also extended `format_elapsed` to render `H:MM:SS` once a duration crosses an hour, since multi-module imports plausibly cross an hour on schema-finalize alone (the 2026-04-23 verified run on cover-art + core was already 25 min on 8 GB RAM).
+
+### Assistant — tests + verification
+
+Three new tests pin the contract: `test_run_summary_emits_brew_style_marker_on_success`, `test_run_summary_skips_emission_on_exception`, `test_run_summary_accepts_custom_label`. One new test (`test_format_elapsed_hour_or_more`) covers the hour branch.
+
+```
+uv run ruff check src tests   # All checks passed!
+uv run mypy src               # Success: no issues found in 29 source files
+uv run pytest -q              # 51 passed in 0.64s
+```
+
+Restricted the summary to `cli.run` only — `download` / `schema create` / `import` are subcommands users invoke individually and the last phase footer already gives them the salient info; if needed they can opt in by wrapping their body in `run_summary("…complete")`.
