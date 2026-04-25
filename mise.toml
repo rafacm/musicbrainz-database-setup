@@ -26,9 +26,14 @@ PROMPT='$ ' RPROMPT='' precmd_functions=() asciinema record \\
 
 [tasks."docs:demo-render"]
 description = "Render docs/assets/musicbrainz-database-setup.gif from the recorded .cast"
+# Cascadia Mono is the only common Mac/Linux monospace font that ships the
+# Braille block (U+2800–U+28FF) used by rich's default spinner. The popular
+# programming fonts (FiraCode, Meslo, Hack, JetBrains Mono, DejaVu Sans Mono)
+# all strip it. agg/usvg's font fallback only covers missing family names,
+# not missing glyph coverage, so the primary font has to have everything.
 run = """
 agg \\
-  --font-family 'FiraCode Nerd Font Mono' \\
+  --font-family 'Cascadia Mono' \\
   --speed 10 \\
   --fps-cap 60 \\
   --theme monokai \\
