@@ -27,7 +27,7 @@ from musicbrainz_database_setup.progress import progress_session
 from musicbrainz_database_setup.schema.orchestrator import Orchestrator
 from musicbrainz_database_setup.schema.phases import Phase
 from musicbrainz_database_setup.sql import github, manifest
-from musicbrainz_database_setup.ui.phases import RunPhase, phase_section
+from musicbrainz_database_setup.ui.phases import RunPhase, phase_section, run_summary
 
 app = typer.Typer(
     name="musicbrainz-database-setup",
@@ -292,7 +292,7 @@ def run(
     yes: Annotated[bool, typer.Option("--yes", "-y")] = False,
 ) -> None:
     """End-to-end: list/pick → download → schema pre → import → schema post."""
-    with _handle_errors():
+    with _handle_errors(), run_summary():
         mods = _parse_modules(modules)
         with progress_session():
             with phase_section(RunPhase.MIRROR):

@@ -19,6 +19,7 @@ from musicbrainz_database_setup.ui.phases import (
     format_elapsed,
     format_size,
     phase_section,
+    run_summary,
 )
 
 
@@ -72,6 +73,14 @@ def test_format_elapsed_minute_or_more() -> None:
     assert format_elapsed(3599) == "59:59"
 
 
+def test_format_elapsed_hour_or_more() -> None:
+    # H:MM:SS once a run crosses an hour — multi-module imports plausibly
+    # land here, especially the post-import DDL phases.
+    assert format_elapsed(3600) == "1:00:00"
+    assert format_elapsed(3661) == "1:01:01"
+    assert format_elapsed(7322) == "2:02:02"
+
+
 def test_format_size_uses_binary_units() -> None:
     assert format_size(0) == "0.0 B"
     assert format_size(512) == "512.0 B"
@@ -118,3 +127,43 @@ def test_phase_section_emits_no_footer_on_exception(
     assert "Import tables" in err
     # … but the success footer must not.
     assert "✓ Import tables complete" not in err
+
+
+def test_run_summary_emits_brew_style_marker_on_success(
+    fresh_console_and_level: None,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    logging.basicConfig(level=logging.INFO, force=True)
+    with run_summary():
+        pass
+
+    err = capsys.readouterr().err
+    assert "==>" in err
+    assert "Run complete" in err
+
+
+def test_run_summary_skips_emission_on_exception(
+    fresh_console_and_level: None,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    logging.basicConfig(level=logging.INFO, force=True)
+    with pytest.raises(RuntimeError), run_summary():
+        raise RuntimeError("boom")
+
+    err = capsys.readouterr().err
+    # No "Run complete" line — _handle_errors owns the failure rendering and
+    # a success marker after a failed run would mislead.
+    assert "Run complete" not in err
+
+
+def test_run_summary_accepts_custom_label(
+    fresh_console_and_level: None,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    logging.basicConfig(level=logging.INFO, force=True)
+    with run_summary("Sync complete"):
+        pass
+
+    err = capsys.readouterr().err
+    assert "==>" in err
+    assert "Sync complete" in err
