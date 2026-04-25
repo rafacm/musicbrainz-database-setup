@@ -117,6 +117,8 @@ Run `uv run musicbrainz-database-setup --help` to see the available commands and
 - `verify` — print `SCHEMA_SEQUENCE` / `REPLICATION_SEQUENCE` for each local archive.
 - `clean` — remove cached downloads.
 
+The end-to-end `run` is structured as five phases — **Mirror → Download → Schema (pre) → Import → Schema (post)** — each preceded by a `Phase N/5 · <label>` banner and closed by a `✓ <label> · <elapsed>` footer so the transcript shows where you are at a glance. Standalone subcommands map to the relevant subset (`download` covers Mirror + Download; `schema create --phase pre/post/all` covers Schema (pre)/(post); `import` covers Import). Pass `-v` / `--verbose` to surface the underlying `httpx` HTTP requests and the rest of the DEBUG-level chatter; default output stays focused on phase progress.
+
 ## Configuration
 
 Precedence: CLI flags > env vars > `.env` file > defaults.

@@ -27,6 +27,7 @@ from musicbrainz_database_setup.progress import progress_session
 from musicbrainz_database_setup.schema.orchestrator import Orchestrator
 from musicbrainz_database_setup.schema.phases import Phase
 from musicbrainz_database_setup.sql import github, manifest
+from musicbrainz_database_setup.ui.phases import RunPhase, phase_section
 
 app = typer.Typer(
     name="musicbrainz-database-setup",
@@ -185,16 +186,17 @@ def download(
         if dump_dir is not None:
             typer.echo(f"Using local dump dir: {dump_dir}")
             return
-        chosen = _resolve_dump_dir(mirror, date=date, latest=latest, yes=yes)
-        dest = _workdir_for(workdir, chosen)
-        typer.echo(f"Downloading to {dest}")
-        checksums = dl.fetch_checksums(chosen)
         with progress_session():
-            for archive_name in manifest.archives_for(mods):
-                dl.download_archive(
-                    chosen, archive_name, dest, checksums=checksums, verify=verify_flag
-                )
-        typer.echo("Done.")
+            with phase_section(RunPhase.MIRROR):
+                chosen = _resolve_dump_dir(mirror, date=date, latest=latest, yes=yes)
+                dest = _workdir_for(workdir, chosen)
+                log.info("Downloading to %s", dest)
+                checksums = dl.fetch_checksums(chosen)
+            with phase_section(RunPhase.DOWNLOAD):
+                for archive_name in manifest.archives_for(mods):
+                    dl.download_archive(
+                        chosen, archive_name, dest, checksums=checksums, verify=verify_flag
+                    )
 
 
 # ---------------------------------------------------------------------- schema
@@ -211,10 +213,15 @@ def schema_create(
     with _handle_errors():
         mods = _parse_modules(modules)
         sha = github.resolve_ref(ref)
+        log.info("Resolved %s → %s", ref, sha[:12])
         with connect(db) as conn, progress_session():
             orch = Orchestrator(conn, sha=sha, modules=mods)
-            orch.run(phase)
-        typer.echo(f"Schema phase {phase.value} complete (ref {ref} → {sha[:12]}).")
+            if phase in (Phase.PRE, Phase.ALL):
+                with phase_section(RunPhase.SCHEMA_PRE):
+                    orch.run_pre_import()
+            if phase in (Phase.POST, Phase.ALL):
+                with phase_section(RunPhase.SCHEMA_POST):
+                    orch.run_post_import()
 
 
 # ---------------------------------------------------------------------- import
@@ -233,13 +240,12 @@ def import_(
     """Stream the TSVs from each archive into COPY FROM STDIN."""
     with _handle_errors():
         mods = _parse_modules(modules)
-        with connect(db) as conn, progress_session():
+        with connect(db) as conn, progress_session(), phase_section(RunPhase.IMPORT):
             for archive_name in manifest.archives_for(mods):
                 archive_path = dump_dir / archive_name
                 if not archive_path.exists():
                     raise UserError(f"Archive not found: {archive_path}")
                 import_archive(conn, archive_path, force=force)
-        typer.echo("Import complete.")
 
 
 # ------------------------------------------------------------------------ run
@@ -260,21 +266,34 @@ def run(
     """End-to-end: list/pick → download → schema pre → import → schema post."""
     with _handle_errors():
         mods = _parse_modules(modules)
-        sha = github.resolve_ref(ref)
-        if dump_dir is None:
-            chosen = _resolve_dump_dir(mirror, date=date, latest=latest, yes=yes)
-            dump_dir = _workdir_for(workdir, chosen)
-            checksums = dl.fetch_checksums(chosen)
-            with progress_session():
-                for archive_name in manifest.archives_for(mods):
-                    dl.download_archive(chosen, archive_name, dump_dir, checksums=checksums)
-        with connect(db) as conn, progress_session():
-            orch = Orchestrator(conn, sha=sha, modules=mods)
-            orch.run_pre_import()
-            for archive_name in manifest.archives_for(mods):
-                import_archive(conn, dump_dir / archive_name)
-            orch.run_post_import()
-        typer.echo("All done.")
+        with progress_session():
+            with phase_section(RunPhase.MIRROR):
+                sha = github.resolve_ref(ref)
+                log.info("Resolved %s → %s", ref, sha[:12])
+                if dump_dir is None:
+                    chosen = _resolve_dump_dir(mirror, date=date, latest=latest, yes=yes)
+                    dump_dir = _workdir_for(workdir, chosen)
+                    checksums = dl.fetch_checksums(chosen)
+                else:
+                    chosen = None
+                    checksums = None
+
+            if chosen is not None and checksums is not None:
+                with phase_section(RunPhase.DOWNLOAD):
+                    for archive_name in manifest.archives_for(mods):
+                        dl.download_archive(
+                            chosen, archive_name, dump_dir, checksums=checksums
+                        )
+
+            with connect(db) as conn:
+                orch = Orchestrator(conn, sha=sha, modules=mods)
+                with phase_section(RunPhase.SCHEMA_PRE):
+                    orch.run_pre_import()
+                with phase_section(RunPhase.IMPORT):
+                    for archive_name in manifest.archives_for(mods):
+                        import_archive(conn, dump_dir / archive_name)
+                with phase_section(RunPhase.SCHEMA_POST):
+                    orch.run_post_import()
 
 
 # ---------------------------------------------------------------------- verify
