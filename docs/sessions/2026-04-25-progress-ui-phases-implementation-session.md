@@ -199,3 +199,18 @@ uv run pytest -q              # 44 passed in 0.60s
 ### Assistant — issue filing for slow-DDL progress polling
 
 Created [issue #8](https://github.com/rafacm/musicbrainz-database-setup/issues/8) — "Show real progress for slow DDL phases via `pg_stat_progress_*` polling" — covering the existing `psql.py:108-111` TODO comment with a concrete proposal: open a side psycopg connection, poll `pg_stat_progress_create_index` once per second while a DDL spinner is active, surface the inner phase + `blocks_done/blocks_total` into the Rich task description. Caveat noted: not every DDL has a progress view (only CREATE INDEX, VACUUM, ANALYZE, COPY, CLUSTER, BASE_BACKUP, CREATE_INDEX). Linked to the PostgreSQL [Progress Reporting docs](https://www.postgresql.org/docs/current/progress-reporting.html).
+
+### User — Homebrew-style banner
+
+> When using brew, I see it used "==> " as an indicator for phases. Like in "==> Fetching downloads for: agg" […] Is this something we could use here? Instead of the line that occupies the whole width of the terminal?
+
+(Screenshot shows brew's `==>` marker in bold blue, plus bold message text, e.g. `==> Fetching downloads for: agg`, `==> Pouring agg--1.7.0.arm64_tahoe.bottle.tar.gz`.)
+
+### Assistant — round-3 implementation
+
+Replaced the full-width `Console.rule(...)` banner with a single-line `==>` prefix:
+
+- `ui/phases.py:phase_section`: changed entry from `console.rule(f"Phase {idx}/{total} · {phase.value}", style="bold cyan")` to `console.print(f"[bold blue]==>[/] [bold]Phase {idx}/{total} · {phase.value}[/]")`. Same content, but the marker now fits in any terminal width and reads as part of the log stream rather than a section break. Rich strips the markup automatically under `--no-color` / non-TTY, so the plain-text fallback is `==> Phase 1/5 · Locate dump`.
+- Updated `tests/unit/test_ui_phases.py` to assert `"==>"` is in the captured stderr — pins the marker so a future style revert surfaces in CI.
+
+Lint + types + tests still clean; 44 / 44 pass.

@@ -66,10 +66,16 @@ def phase_section(
     On exception, no footer is printed — the banner already in scrollback
     points the reader at the failing phase, and ``cli._handle_errors`` is
     responsible for the actual error rendering.
+
+    Banner uses Homebrew's ``==>`` prefix style rather than a full-width rule
+    so phase markers read as part of the log stream and don't depend on
+    terminal width.
     """
     index = PHASE_ORDER.index(phase) + 1
     console = get_console()
-    console.rule(f"Phase {index}/{total_phases} · {phase.value}", style="bold cyan")
+    console.print(
+        f"[bold blue]==>[/] [bold]Phase {index}/{total_phases} · {phase.value}[/]"
+    )
 
     start = time.monotonic()
     yield
