@@ -16,8 +16,6 @@
 
 `musicbrainz-database-setup` is a Python CLI that sets up a full [MusicBrainz](https://musicbrainz.org/) database in PostgreSQL. Point it at a connection string and a dump, and it handles the rest: resumable, SHA256-verified downloads from the [MetaBrainz mirror](https://wiki.musicbrainz.org/MusicBrainz_Database/Download), schema creation via the upstream [`admin/sql/*.sql`](https://github.com/metabrainz/musicbrainz-server/tree/master/admin/sql) files, and streaming `COPY` of every table with live progress.
 
-It automates the steps documented across the MusicBrainz wiki and the upstream [`musicbrainz-server/admin`](https://github.com/metabrainz/musicbrainz-server/tree/master/admin) Perl scripts into a single command you can point at any PostgreSQL connection — local Docker, managed (RDS, Cloud SQL), or anything else that speaks libpq.
-
 This project originated from [RAGtime](https://github.com/rafacm/ragtime), where it powers the [entity-resolution step](https://github.com/rafacm/ragtime/tree/main/doc#8--resolve-entities-status-resolving) that maps extracted mentions to canonical MusicBrainz entities.
 
 ## Requirements
@@ -164,7 +162,9 @@ uv run mypy src
 
 ## Credits
 
-This tool stands on the work of the MusicBrainz, MetaBrainz, and acoustid communities. See [docs/README.md → References](docs/README.md#references) for the full list of upstream sources.
+This tool stands on the work of the [MusicBrainz](https://musicbrainz.org/), [MetaBrainz](https://metabrainz.org/), and [acoustid](https://acoustid.org/) communities. It automates the steps documented across the MusicBrainz wiki and the upstream [`musicbrainz-server/admin`](https://github.com/metabrainz/musicbrainz-server/tree/master/admin) Perl scripts into a single command you can point at any PostgreSQL connection — local Docker, managed (RDS, Cloud SQL), or anything else that speaks libpq. 
+
+See [docs/README.md → References](docs/README.md#references) for the full list of upstream sources.
 
 ## License
 
