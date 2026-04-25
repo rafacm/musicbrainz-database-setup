@@ -37,6 +37,8 @@ def download_archive(
     *,
     checksums: Checksums,
     verify: bool = True,
+    index: int = 1,
+    total: int = 1,
 ) -> Path:
     """Download one archive with resume + checksum verification.
 
@@ -56,7 +58,12 @@ def download_archive(
 
     if final.exists() and verify and expected is not None:
         verify_file(final, expected, checksums.algo)
-        log.info("Archive %s already present and verified.", archive_name)
+        log.info(
+            "(%d/%d) Archive %s already present and verified.",
+            index,
+            total,
+            archive_name,
+        )
         return final
 
     offset = part.stat().st_size if part.exists() else 0
@@ -98,7 +105,13 @@ def download_archive(
     if verify and expected is not None:
         verify_file(part, expected, checksums.algo)
     part.replace(final)
-    log.info("✓ Downloaded %s · %s", archive_name, format_size(final.stat().st_size))
+    log.info(
+        "✓ (%d/%d) Downloaded %s · %s",
+        index,
+        total,
+        archive_name,
+        format_size(final.stat().st_size),
+    )
     return final
 
 

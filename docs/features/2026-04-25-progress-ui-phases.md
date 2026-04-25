@@ -37,11 +37,22 @@ The user couldn't tell at a glance which step of the pipeline was running, and t
 - httpx/httpcore both lifted in lockstep — silencing `httpx` alone leaves `httpcore` chatter; promoting both keeps the `-v` symmetry.
 - `RichHandler(show_level=False)` hides the level column for *all* records, not just INFO. Severity styling (yellow message body for WARNING, red for ERROR) is preserved via Rich's built-in per-level theme, so warnings and errors stay distinguishable without their text label.
 
+## Round-2 refinements (post Evil Martians review)
+
+After the first end-to-end test the work was reviewed against the [Evil Martians CLI progress patterns article](https://evilmartians.com/chronicles/cli-ux-best-practices-3-patterns-for-improving-progress-displays). The review surfaced four concrete gaps which were addressed in the same PR:
+
+1. **X-of-Y count prefix.** Every per-step log line now carries `(N/total)`: `✓ (1/5) Applied admin/sql/Extensions.sql · 0.1s`, `✓ (1/3) Downloaded mbdump.tar.bz2 · 1.2 GiB`, `(1/2) Importing tables from <archive>` + `✓ (1/2) Imported <archive>`. `Orchestrator._run_file`, `download_archive`, and `import_archive` gained `index` / `total` keyword args; the CLI computes them by `enumerate(list(...), start=1)` against the manifest. Per-table COPY lines deliberately stay count-less because streaming `tarfile.open(mode="r|bz2")` cannot enumerate members up-front (acknowledged in `AGENTS.md` "Tricky bits").
+2. **Green checkmarks.** A new `_CheckmarkHighlighter` (subclass of `rich.highlighter.Highlighter`) attached to `RichHandler` styles every literal `✓` character bold green, without embedding Rich markup in the log message. The file handler therefore receives plain `✓` text — no `[green]…[/]` leaks into `--log-file`.
+3. **Past-tense phase footer.** `phase_section` footer changed from `✓ <label> · <elapsed>` to `✓ <label> complete · <elapsed>` so the line reads grammatically for noun-style labels (`Schema setup`, `Locate dump`) too. Aligns with the article's verb-tense recommendation.
+4. **`--no-color` flag.** New global `--no-color` Typer option. `configure()` sets `NO_COLOR=1` *before* the `Console` is constructed and resets the cached singleton via a new `_reset_console()` helper so the env var is honoured. Externally-set `NO_COLOR` continues to work as before (Rich handles it natively at Console init).
+
+A fifth gap — proper progress reporting for the slow `CreateIndexes.sql` / `CreateFKConstraints.sql` files via `pg_stat_progress_*` polling on a side connection — is tracked separately in [issue #8](https://github.com/rafacm/musicbrainz-database-setup/issues/8) for follow-up.
+
 ## Verification
 
 - `uv run ruff check src tests` — clean.
 - `uv run mypy src` — strict, clean (29 source files).
-- `uv run pytest` — 42/42 pass (32 prior + 10 new across `test_ui_phases.py` and `test_logging.py`).
+- `uv run pytest` — 44/44 pass (32 prior + 12 new across `test_ui_phases.py` and `test_logging.py`).
 - **Default end-to-end run** (`uv run musicbrainz-database-setup run --modules core --latest --workdir /tmp/mb-cache --yes`):
   - Five `Phase N/5 · …` rules render in order, each in bold cyan: `Locate dump`, `Download`, `Schema setup`, `Import tables`, `Schema finalize`.
   - No `HTTP Request: GET …` lines anywhere.

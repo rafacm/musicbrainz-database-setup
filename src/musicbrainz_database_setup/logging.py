@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import logging
+import os
 from pathlib import Path
 
 from rich.console import Console
+from rich.highlighter import Highlighter
 from rich.logging import RichHandler
+from rich.text import Text
 
 _console: Console | None = None
 
@@ -16,9 +19,45 @@ def get_console() -> Console:
     return _console
 
 
+def _reset_console() -> None:
+    """Drop the cached Console so the next ``get_console()`` rebuilds it.
+
+    Used when ``configure()`` learns about an env var (e.g. ``NO_COLOR``) that
+    must be honoured at Console construction time.
+    """
+    global _console
+    _console = None
+
+
+class _CheckmarkHighlighter(Highlighter):
+    """Render the leading ✓ on success log lines in bold green.
+
+    Keeps the underlying log message string ASCII-friendly (no embedded Rich
+    markup) so ``--log-file`` and any other downstream text consumer get the
+    plain text.
+    """
+
+    def highlight(self, text: Text) -> None:
+        plain = text.plain
+        for index, char in enumerate(plain):
+            if char == "✓":
+                text.stylize("bold green", index, index + 1)
+
+
 def configure(
-    *, verbose: bool = False, quiet: bool = False, log_file: Path | None = None
+    *,
+    verbose: bool = False,
+    quiet: bool = False,
+    log_file: Path | None = None,
+    no_color: bool = False,
 ) -> logging.Logger:
+    # Respect ``--no-color``/``NO_COLOR`` *before* the Console is constructed:
+    # Rich reads the env var once, at Console init. The env var must be set
+    # first so the cached Console (rebuilt below) honours it.
+    if no_color:
+        os.environ["NO_COLOR"] = "1"
+        _reset_console()
+
     level = logging.WARNING if quiet else (logging.DEBUG if verbose else logging.INFO)
     root = logging.getLogger()
     root.handlers.clear()
@@ -39,6 +78,7 @@ def configure(
         show_level=False,
         markup=False,
         rich_tracebacks=True,
+        highlighter=_CheckmarkHighlighter(),
     )
     rich_handler.setLevel(level)
     root.addHandler(rich_handler)

@@ -94,8 +94,9 @@ def test_phase_section_emits_banner_and_footer_on_success(
     # Banner: position in PHASE_ORDER is 3 (1-indexed) of 5.
     assert "Phase 3/5" in err
     assert "Schema setup" in err
-    # Footer with elapsed time.
-    assert "✓ Schema setup ·" in err
+    # Footer is past-tense "<label> complete" so it reads grammatically for
+    # noun-style labels ("Schema setup", "Locate dump") too.
+    assert "✓ Schema setup complete ·" in err
 
 
 def test_phase_section_emits_no_footer_on_exception(
@@ -111,4 +112,4 @@ def test_phase_section_emits_no_footer_on_exception(
     assert "Phase 4/5" in err
     assert "Import tables" in err
     # … but the success footer must not.
-    assert "✓ Import tables" not in err
+    assert "✓ Import tables complete" not in err
