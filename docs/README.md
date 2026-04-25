@@ -17,6 +17,7 @@ Long-form companion to the [project README](../README.md). Everything here is re
   - [MusicBrainz documentation](#musicbrainz-documentation)
   - [Upstream code](#upstream-code)
   - [Related projects](#related-projects)
+- [Regenerating the README demo GIF](#regenerating-the-readme-demo-gif)
 
 ## PostgreSQL
 
@@ -134,3 +135,37 @@ Any libpq [environment variable](https://www.postgresql.org/docs/current/libpq-e
 - [`acoustid/mbslave`](https://github.com/acoustid/mbslave): Lukas Lalinsky's Python tool that handles both initial import and ongoing replication.
 - [`acoustid/mbdata`](https://github.com/acoustid/mbdata): SQLAlchemy models for the MusicBrainz schema. Complementary to this tool.
 - [`metabrainz/musicbrainz-docker`](https://github.com/metabrainz/musicbrainz-docker): upstream's official Docker-compose stack — useful reference for how upstream provisions Postgres.
+
+## Regenerating the README demo GIF
+
+The animated terminal demo at the top of the [project README](../README.md) is generated from an [asciinema](https://asciinema.org/) recording rendered to GIF with [agg](https://github.com/asciinema/agg). Both are available via Homebrew:
+
+```bash
+brew install asciinema agg
+```
+
+Three [`mise`](https://mise.jdx.dev/) tasks wrap the workflow:
+
+1. **Record** — starts a dedicated demo Postgres container on port `5433` (override with `POSTGRES_PORT=…`), then launches `asciinema` writing to `docs/assets/musicbrainz-database-setup.cast`. Run whatever commands you want to demo using the printed connection string, then press `Ctrl-D` to stop:
+
+   ```bash
+   mise run docs:demo-record
+   # or, if 5433 is also taken:
+   POSTGRES_PORT=5444 mise run docs:demo-record
+   ```
+
+2. **Render** — converts the `.cast` into `docs/assets/musicbrainz-database-setup.gif`:
+
+   ```bash
+   mise run docs:demo-render
+   ```
+
+3. **Cleanup** — removes the demo Postgres container:
+
+   ```bash
+   mise run docs:demo-cleanup
+   ```
+
+Both the `.cast` and the `.gif` are committed; the `.cast` is the source of truth, and re-rendering only requires step 2.
+
+> 💡 The `agg` font family is fixed to `FiraCode Nerd Font Mono` because it's the most widely-installed Nerd Font that ships the Braille block (U+2800–U+28FF) used by `rich`'s default spinner. If you swap fonts, verify the spinner renders — Apple's Menlo (and therefore Meslo Nerd Fonts) do **not** include Braille and will display `?`.
