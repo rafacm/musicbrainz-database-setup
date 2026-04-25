@@ -62,7 +62,7 @@ uv run musicbrainz-database-setup run \
 
 If neither `--latest` nor `--date YYYYMMDD-HHMMSS` is passed, `run` interactively prompts for a dump directory from the mirror.
 
-Every flag has an env-var equivalent, and standard `PG*` libpq vars apply to the connection string. See [Configuration](docs/README.md#configuration) in the reference guide for the full list and how to keep the password out of the URL.
+The main configuration options have `MUSICBRAINZ_DATABASE_SETUP_*` env-var equivalents, and standard `PG*` libpq vars apply to the connection string. See [Configuration](docs/README.md#configuration) in the reference guide for the full list and how to keep the password out of the URL.
 
 ### 4. Explore the data
 
@@ -164,7 +164,7 @@ uv run mypy src
 
 ## Credits
 
-This tool stands on the work of the [MusicBrainz](https://musicbrainz.org/), [MetaBrainz](https://metabrainz.org/), and [acoustid](https://acoustid.org/) communities. It automates the steps documented across the MusicBrainz wiki and the upstream [`musicbrainz-server/admin`](https://github.com/metabrainz/musicbrainz-server/tree/master/admin) Perl scripts into a single command you can point at any PostgreSQL connection — local Docker, managed (RDS, Cloud SQL), or anything else that speaks libpq. 
+This tool stands on the work of the [MusicBrainz](https://musicbrainz.org/), [MetaBrainz](https://metabrainz.org/), and [acoustid](https://acoustid.org/) communities. It automates the steps documented across the MusicBrainz wiki and the upstream [`musicbrainz-server/admin`](https://github.com/metabrainz/musicbrainz-server/tree/master/admin) Perl scripts into a single command you can point at any PostgreSQL connection — local Docker, managed (RDS, Cloud SQL), or anything else that speaks libpq.
 
 See [docs/README.md → References](docs/README.md#references) for the full list of upstream sources.
 
