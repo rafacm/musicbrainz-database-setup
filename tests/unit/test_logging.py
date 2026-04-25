@@ -85,3 +85,53 @@ def test_default_leaves_no_color_unset(reset_loggers: None) -> None:
     # capsys captures stderr (Rich treats a non-tty as no-colour). What we
     # care about is that we did not _force_ NO_COLOR on.
     assert mbs_logging.get_console().no_color is False
+
+
+def test_warning_records_get_explicit_text_label(
+    reset_loggers: None,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """WARNING records must carry a ``Warning:`` text prefix even when colour
+    is stripped, so severity is readable under ``--no-color`` / piped stderr.
+
+    clig.dev advises against generic level prefixes on routine output, but
+    user-facing CLIs (cargo, npm, pip, brew, gh) keep an explicit text label
+    on warnings/errors. This test pins that contract.
+    """
+    configure(verbose=False, quiet=False, no_color=True)
+
+    logging.getLogger("musicbrainz_database_setup").warning("careful")
+
+    err = capsys.readouterr().err
+    assert "Warning: careful" in err
+
+
+def test_error_records_get_explicit_text_label(
+    reset_loggers: None,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    configure(verbose=False, quiet=False, no_color=True)
+
+    logging.getLogger("musicbrainz_database_setup").error("bad")
+
+    err = capsys.readouterr().err
+    assert "Error: bad" in err
+
+
+def test_info_records_have_no_level_prefix(
+    reset_loggers: None,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """INFO routine progress should not carry a level label — clig.dev / brew
+    / cargo / gh convention. Only WARNING+ keeps an explicit prefix.
+    """
+    configure(verbose=False, quiet=False, no_color=True)
+
+    logging.getLogger("musicbrainz_database_setup").info("step done")
+
+    err = capsys.readouterr().err
+    assert "step done" in err
+    assert "INFO" not in err
+    assert "Info:" not in err
+    assert "Warning:" not in err
+    assert "Error:" not in err
