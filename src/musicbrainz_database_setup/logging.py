@@ -24,6 +24,14 @@ def configure(
     root.handlers.clear()
     root.setLevel(level)
 
+    # httpx/httpcore log every request at INFO. At default verbosity each SQL
+    # file fetch and every mirror/GitHub call would print "HTTP Request: GET
+    # …" — cluttering the screen and burying the per-phase output. Promote
+    # them to DEBUG so they only surface under ``-v``.
+    http_level = logging.DEBUG if verbose else logging.WARNING
+    for noisy in ("httpx", "httpcore"):
+        logging.getLogger(noisy).setLevel(http_level)
+
     rich_handler = RichHandler(
         console=get_console(),
         show_time=False,

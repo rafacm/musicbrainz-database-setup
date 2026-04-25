@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from pathlib import Path
 from typing import IO
 
@@ -22,6 +23,7 @@ from musicbrainz_database_setup.schema.phases import (
     BOOKKEEPING_SCHEMA,
     IMPORTED_ARCHIVES_TABLE,
 )
+from musicbrainz_database_setup.ui.phases import format_elapsed
 
 log = logging.getLogger(__name__)
 
@@ -81,34 +83,36 @@ def import_archive(
     schema_seq = read_metadata_file(archive_path, "SCHEMA_SEQUENCE")
     replication_seq = read_metadata_file(archive_path, "REPLICATION_SEQUENCE")
 
-    pm = ProgressManager.instance()
-    archive_task = pm.add_task(f"Import {archive_name}", total=None, note="")
-
+    log.info("Importing %s", archive_name)
+    start = time.monotonic()
     tables_total = 0
     try:
         with bulk_session(conn):
             with open_archive(archive_path) as tar:
                 for member in iter_mbdump_members(tar):
-                    _copy_member(conn, member, schema_name, archive_task)
+                    _copy_member(conn, member, schema_name)
                     tables_total += 1
             _record_imported(conn, archive_name, schema_seq, replication_seq)
             conn.commit()
     except Exception as exc:
         conn.rollback()
         raise ImportError_(f"Import of {archive_name} failed: {exc}") from exc
-    finally:
-        pm.update(archive_task, note=f"{tables_total} tables")
+    log.info(
+        "✓ Imported %s · %d tables · %s",
+        archive_name,
+        tables_total,
+        format_elapsed(time.monotonic() - start),
+    )
 
 
 def _copy_member(
     conn: Connection,
     member: DumpMember,
     schema_name: str,
-    archive_task_id: object,
 ) -> None:
     pm = ProgressManager.instance()
     table_task = pm.add_task(
-        f"  COPY {schema_name}.{member.table_name}",
+        f"COPY {schema_name}.{member.table_name}",
         total=float(member.size) if member.size > 0 else None,
     )
     stmt = sql.SQL("COPY {}.{} FROM STDIN").format(

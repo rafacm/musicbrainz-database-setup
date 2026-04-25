@@ -111,7 +111,6 @@ class Orchestrator:
             return
 
         local = github.fetch(sqlfile.repo_path, sha=self.sha, cache_root=self.cache_root)
-        log.info("Running %s", sqlfile.repo_path)
 
         # psql manages the file's own BEGIN;/COMMIT; and handles meta-commands
         # natively. Release any read txn left open by _already_applied first
@@ -119,7 +118,7 @@ class Orchestrator:
         self.conn.commit()
         start = time.monotonic()
         run_sql_file(self.conn, local)
-        log.info("%s finished in %.1fs", sqlfile.repo_path, time.monotonic() - start)
+        log.info("✓ %s (%.1fs)", sqlfile.repo_path, time.monotonic() - start)
 
         # Record applied-phase bookkeeping in its own small transaction.
         self._record_applied(phase_key)

@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), using dates (`## YYYY-MM-DD`) as section headers instead of version numbers.
 
+## 2026-04-25
+
+### Changed
+
+- CLI progress UI is now structured around five top-level **phases** — Mirror, Download, Schema (pre), Import, Schema (post). `cli.run` wraps each leg in a new `ui.phases.phase_section` context manager that emits a `Phase N/5 · <label>` rule on entry and a single `✓ <label> · <elapsed>` footer on success (no footer on exception — the banner already in scrollback identifies the failing phase). Standalone subcommands map to the relevant subset: `download` → Mirror + Download, `schema create --phase pre/post/all` → Schema (pre) and/or Schema (post), `import` → Import. The two `progress_session()` blocks in `run` collapsed into one so the Rich Live table stays alive across the DB-connect boundary. Trailing `typer.echo("All done.")` / `"Import complete."` / `"Done."` / `"Schema phase … complete"` lines were removed — the phase footer says it. Plan: [`docs/plans/2026-04-25-progress-ui-phases.md`](docs/plans/2026-04-25-progress-ui-phases.md). Feature doc: [`docs/features/2026-04-25-progress-ui-phases.md`](docs/features/2026-04-25-progress-ui-phases.md). Sessions: [planning](docs/sessions/2026-04-25-progress-ui-phases-planning-session.md), [implementation](docs/sessions/2026-04-25-progress-ui-phases-implementation-session.md).
+- `httpx` and `httpcore` per-request INFO chatter (`HTTP Request: GET https://… "HTTP/1.1 200 OK"`) is now gated behind `-v`. `logging.configure()` promotes both loggers to `DEBUG` only when `verbose=True`; otherwise they sit at `WARNING`. The default transcript no longer carries one HTTP log line per SQL fetch / SHA256SUMS / GitHub call. The `--log-file` handler is unchanged (DEBUG, file) so post-mortem traces still capture every HTTP request. Same plan / feature / sessions as the phase model change above.
+- `schema.orchestrator._run_file` per-SQL-file output trimmed: dropped `INFO Running admin/sql/X.sql` (the `psql X.sql` spinner already shows that), and rewrote the completion log from `INFO admin/sql/X.sql finished in 0.1s` to `INFO ✓ admin/sql/X.sql (0.1s)` so it visually pairs with the phase footer.
+- `importer.copy.import_archive` no longer creates an indeterminate `Import mbdump.tar.bz2  0/?  0/? bytes  ?  0:00:51` parent progress task (it rendered like a broken progress bar). Replaced with a `INFO Importing <archive>` header and a `INFO ✓ Imported <archive> · N tables · M:SS` footer, leaving the per-table COPY bars unchanged. Per-table descriptions lost the leading two-space indent (no parent to indent under).
+
 ## 2026-04-24
 
 ### Changed
