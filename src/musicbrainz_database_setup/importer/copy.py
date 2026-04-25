@@ -23,7 +23,7 @@ from musicbrainz_database_setup.schema.phases import (
     BOOKKEEPING_SCHEMA,
     IMPORTED_ARCHIVES_TABLE,
 )
-from musicbrainz_database_setup.ui.phases import format_elapsed
+from musicbrainz_database_setup.ui.phases import format_elapsed, format_size
 
 log = logging.getLogger(__name__)
 
@@ -83,7 +83,7 @@ def import_archive(
     schema_seq = read_metadata_file(archive_path, "SCHEMA_SEQUENCE")
     replication_seq = read_metadata_file(archive_path, "REPLICATION_SEQUENCE")
 
-    log.info("Importing %s", archive_name)
+    log.info("Importing tables from %s", archive_name)
     start = time.monotonic()
     tables_total = 0
     try:
@@ -123,6 +123,12 @@ def _copy_member(
             _stream_into_copy(member.file, copy, table_task)
     finally:
         pm.remove_task(table_task)
+    log.info(
+        "✓ Table %s.%s · %s",
+        schema_name,
+        member.table_name,
+        format_size(member.size) if member.size > 0 else "0 B",
+    )
 
 
 def _stream_into_copy(src: IO[bytes], copy: object, task_id: object) -> None:

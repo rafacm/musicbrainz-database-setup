@@ -9,7 +9,6 @@ from typing import Any
 from rich.progress import (
     BarColumn,
     DownloadColumn,
-    MofNCompleteColumn,
     Progress,
     SpinnerColumn,
     TaskID,
@@ -33,11 +32,14 @@ class ProgressManager:
     _instance: ProgressManager | None = None
 
     def __init__(self) -> None:
+        # Columns are tuned for byte-based tasks: DownloadColumn renders
+        # human-readable sizes (e.g. ``902.8/1226.0 MiB``); a M-of-N column
+        # would just repeat the same totals as raw byte counts and crowd the
+        # row, so it is deliberately omitted.
         self._progress = Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
             BarColumn(),
-            MofNCompleteColumn(),
             DownloadColumn(binary_units=True),
             TransferSpeedColumn(),
             TimeElapsedColumn(),
