@@ -62,6 +62,8 @@ uv run musicbrainz-database-setup run \
 
 If neither `--latest` nor `--date YYYYMMDD-HHMMSS` is passed, `run` interactively prompts for a dump directory from the mirror.
 
+Every flag has an env-var equivalent, and standard `PG*` libpq vars apply to the connection string. See [Configuration](docs/README.md#configuration) in the reference guide for the full list and how to keep the password out of the URL.
+
 ### Poke around the imported data
 
 Open a psql session against the database and run a couple of sanity queries:
