@@ -138,10 +138,11 @@ Any libpq [environment variable](https://www.postgresql.org/docs/current/libpq-e
 
 ## Regenerating the README demo GIF
 
-The animated terminal demo at the top of the [project README](../README.md) is generated from an [asciinema](https://asciinema.org/) recording rendered to GIF with [agg](https://github.com/asciinema/agg). Both are available via Homebrew:
+The animated terminal demo at the top of the [project README](../README.md) is generated from an [asciinema](https://asciinema.org/) recording rendered to GIF with [agg](https://github.com/asciinema/agg). Both, plus the rendering font, are available via Homebrew:
 
 ```bash
 brew install asciinema agg
+brew install --cask font-cascadia-mono
 ```
 
 Three [`mise`](https://mise.jdx.dev/) tasks wrap the workflow:
@@ -168,4 +169,4 @@ Three [`mise`](https://mise.jdx.dev/) tasks wrap the workflow:
 
 Both the `.cast` and the `.gif` are committed; the `.cast` is the source of truth, and re-rendering only requires step 2.
 
-> 💡 The `agg` font family is fixed to `FiraCode Nerd Font Mono` because it's the most widely-installed Nerd Font that ships the Braille block (U+2800–U+28FF) used by `rich`'s default spinner. If you swap fonts, verify the spinner renders — Apple's Menlo (and therefore Meslo Nerd Fonts) do **not** include Braille and will display `?`.
+> 💡 The `agg` font family is fixed to `Cascadia Mono` because it's the only common monospace font that ships the Braille block (U+2800–U+28FF) used by `rich`'s default spinner. The popular programming-font families on macOS — FiraCode, Meslo, Hack, JetBrains Mono, even DejaVu Sans Mono — all strip Braille from their monospace variants. agg/usvg's font fallback only resolves missing family names, not missing glyph coverage, so the primary font has to cover everything. If you swap fonts, verify the spinner renders — a missing Braille glyph displays as `?`.
