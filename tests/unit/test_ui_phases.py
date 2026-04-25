@@ -91,6 +91,10 @@ def test_phase_section_emits_banner_and_footer_on_success(
         pass
 
     err = capsys.readouterr().err
+    # Banner uses Homebrew's ``==>`` prefix instead of a full-width rule so
+    # the marker fits in any terminal width and reads as part of the log
+    # stream.
+    assert "==>" in err
     # Banner: position in PHASE_ORDER is 3 (1-indexed) of 5.
     assert "Phase 3/5" in err
     assert "Schema setup" in err
@@ -109,6 +113,7 @@ def test_phase_section_emits_no_footer_on_exception(
 
     err = capsys.readouterr().err
     # Banner still appears so the user sees which phase blew up …
+    assert "==>" in err
     assert "Phase 4/5" in err
     assert "Import tables" in err
     # … but the success footer must not.
