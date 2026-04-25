@@ -29,7 +29,7 @@ See [docs/README.md](docs/README.md) for the full setup guide — extensions, IC
 
 ## Quick start
 
-### Start a Postgres instance
+### 1. Start Postgres
 
 Any official `postgres:*` image works. `--name` is the Docker container name (for `docker exec` / `docker stop`); the database name used by the tool is `postgres`, the default created by the image's entrypoint.
 
@@ -43,13 +43,13 @@ docker run -d \
 
 > 💡 **Want a faster import?** Add server-start tuning flags (`shared_buffers`, `max_wal_size`, `checkpoint_timeout`, …) to roughly halve post-import DDL time. See [Server-side tuning](docs/README.md#server-side-tuning-optional) in the reference guide for the tuned `docker run` and per-flag rationale.
 
-### Install the CLI
+### 2. Install the CLI
 
 ```bash
 uv sync
 ```
 
-### Download, create the schema, import, and finalise, end-to-end
+### 3. Import the database
 
 Connection string is `postgresql://<user>:<password>@<host>:<port>/<database>`.
 
@@ -64,7 +64,7 @@ If neither `--latest` nor `--date YYYYMMDD-HHMMSS` is passed, `run` interactivel
 
 Every flag has an env-var equivalent, and standard `PG*` libpq vars apply to the connection string. See [Configuration](docs/README.md#configuration) in the reference guide for the full list and how to keep the password out of the URL.
 
-### Poke around the imported data
+### 4. Explore the data
 
 Open a psql session against the database and run a couple of sanity queries:
 
