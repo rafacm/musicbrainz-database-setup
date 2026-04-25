@@ -16,7 +16,7 @@ Long-form companion to the [project README](../README.md). Everything here is re
 - [References](#references)
   - [MusicBrainz documentation](#musicbrainz-documentation)
   - [Upstream code](#upstream-code)
-  - [Related Python tools](#related-python-tools)
+  - [Related projects](#related-projects)
 
 ## PostgreSQL
 
@@ -119,22 +119,18 @@ Any libpq [environment variable](https://www.postgresql.org/docs/current/libpq-e
 
 ## References
 
-This tool is built on the following primary sources.
-
 ### MusicBrainz documentation
 
-- [**Database / Download**](https://wiki.musicbrainz.org/MusicBrainz_Database/Download): mirror layout, dump cadence, checksum/signature files.
-- [**Database / Schema**](https://wiki.musicbrainz.org/MusicBrainz_Database/Schema): PG version and extension requirements.
-- [**MusicBrainz Entity**](https://musicbrainz.org/doc/MusicBrainz_Entity): the entity model and which entities are core vs derived.
-- [**Development / JSON Data Dumps**](https://musicbrainz.org/doc/Development/JSON_Data_Dumps): JSON dump format (out of scope for this tool).
+- [Database / Download](https://wiki.musicbrainz.org/MusicBrainz_Database/Download): mirror layout, dump cadence, checksum/signature files.
+- [Database / Schema](https://wiki.musicbrainz.org/MusicBrainz_Database/Schema): PG version and extension requirements.
+- [MusicBrainz Entity](https://musicbrainz.org/doc/MusicBrainz_Entity): the entity model and which entities are core vs derived.
 
 ### Upstream code
 
-- [**`metabrainz/musicbrainz-server/admin/sql/`**](https://github.com/metabrainz/musicbrainz-server/tree/master/admin/sql): the canonical DDL this tool applies (`Extensions.sql`, `CreateCollations.sql`, `CreateTypes.sql`, `CreateTables.sql`, …, `CreateTriggers.sql`).
-- [**`metabrainz/musicbrainz-server/admin/`**](https://github.com/metabrainz/musicbrainz-server/tree/master/admin): `InitDb.pl` (authoritative DDL phase order) and `MBImport.pl` (reference for the COPY loop).
-- [**`metabrainz/musicbrainz-docker`**](https://github.com/metabrainz/musicbrainz-docker): upstream's official Docker-compose stack. A useful reference for how upstream provisions Postgres, but not a dependency of this tool.
+- [`metabrainz/musicbrainz-server/admin/`](https://github.com/metabrainz/musicbrainz-server/tree/master/admin): the upstream admin tree. Its [`sql/*.sql`](https://github.com/metabrainz/musicbrainz-server/tree/master/admin/sql) files are the canonical DDL we apply (`Extensions.sql`, `CreateCollations.sql`, `CreateTypes.sql`, `CreateTables.sql`, …, `CreateTriggers.sql`); `InitDb.pl` is the authoritative phase order; `MBImport.pl` is the reference for our COPY loop.
 
-### Related Python tools
+### Related projects
 
-- [**`acoustid/mbslave`**](https://github.com/acoustid/mbslave): Lukas Lalinsky's Python tool that handles both initial import and ongoing replication.
-- [**`acoustid/mbdata`**](https://github.com/acoustid/mbdata): SQLAlchemy models for the MusicBrainz schema. Complementary to this tool.
+- [`acoustid/mbslave`](https://github.com/acoustid/mbslave): Lukas Lalinsky's Python tool that handles both initial import and ongoing replication.
+- [`acoustid/mbdata`](https://github.com/acoustid/mbdata): SQLAlchemy models for the MusicBrainz schema. Complementary to this tool.
+- [`metabrainz/musicbrainz-docker`](https://github.com/metabrainz/musicbrainz-docker): upstream's official Docker-compose stack — useful reference for how upstream provisions Postgres.
