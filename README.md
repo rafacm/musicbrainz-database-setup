@@ -41,7 +41,7 @@ docker run -d \
   postgres:17-alpine
 ```
 
-> 💡 **Want a faster import?** Add server-start tuning flags (`shared_buffers`, `max_wal_size`, `checkpoint_timeout`, …) to roughly halve post-import DDL time. See [PostgreSQL server-side tuning](docs/README.md#postgresql-server-side-tuning-optional) for the tuned `docker run` and per-flag rationale.
+> 💡 **Want a faster import?** Add server-start tuning flags (`shared_buffers`, `max_wal_size`, `checkpoint_timeout`, …) to roughly halve post-import DDL time. See [Server-side tuning](docs/README.md#server-side-tuning-optional) in the reference guide for the tuned `docker run` and per-flag rationale.
 
 ### Install the CLI
 
@@ -129,7 +129,7 @@ Run `uv run musicbrainz-database-setup --help` to see the available commands and
 - `verify`: print `SCHEMA_SEQUENCE` / `REPLICATION_SEQUENCE` for each local archive.
 - `clean`: remove cached downloads.
 
-See [Progress output](docs/README.md#progress-output) in `docs/README.md` for the 5-phase breakdown of `run` and the per-phase output format.
+Pass `-v` / `--verbose` on any of these commands to surface the underlying DEBUG-level output (`httpx` HTTP requests and the rest of the chatter); the default transcript stays focused on high-level phase progress.
 
 ## Status
 
