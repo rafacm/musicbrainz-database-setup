@@ -44,6 +44,34 @@ class _CheckmarkHighlighter(Highlighter):
                 text.stylize("bold green", index, index + 1)
 
 
+class _SeverityRichHandler(RichHandler):
+    """``RichHandler`` that prefixes WARNING/ERROR records with a text label.
+
+    clig.dev advises against printing log-level labels on routine output
+    (``"Don't print log level labels (ERR, WARN, etc.) or extraneous
+    contextual information, unless in verbose mode."``), but the convention
+    in user-facing CLIs (``cargo``, ``npm``, ``pip``, ``brew``, ``gh``,
+    ``terraform``) is to keep an explicit ``Warning:`` / ``Error:`` prefix
+    on those specific levels — so severity stays readable when colour is
+    stripped (``--no-color``, NO_COLOR, redirected stderr).
+
+    INFO / DEBUG records pass through unchanged, matching the symbol-based
+    markers (``==>``, ``✓``) we already use for routine progress.
+    """
+
+    def render_message(self, record: logging.LogRecord, message: str) -> Text:
+        # Rich's type stubs declare the return as ConsoleRenderable, but the
+        # implementation always returns Text — assert + cast keeps mypy happy
+        # and surfaces any future Rich change loud and early.
+        rendered = super().render_message(record, message)
+        assert isinstance(rendered, Text)
+        if record.levelno >= logging.ERROR:
+            return Text.assemble(("Error: ", "bold red"), rendered)
+        if record.levelno >= logging.WARNING:
+            return Text.assemble(("Warning: ", "bold yellow"), rendered)
+        return rendered
+
+
 def configure(
     *,
     verbose: bool = False,
@@ -71,7 +99,7 @@ def configure(
     for noisy in ("httpx", "httpcore"):
         logging.getLogger(noisy).setLevel(http_level)
 
-    rich_handler = RichHandler(
+    rich_handler = _SeverityRichHandler(
         console=get_console(),
         show_time=False,
         show_path=False,

@@ -214,3 +214,78 @@ Replaced the full-width `Console.rule(...)` banner with a single-line `==>` pref
 - Updated `tests/unit/test_ui_phases.py` to assert `"==>"` is in the captured stderr — pins the marker so a future style revert surfaces in CI.
 
 Lint + types + tests still clean; 44 / 44 pass.
+
+### User — PR #7 review feedback
+
+> Check the PR for review comments and address them. Regarding showing the "INFO" in the entries. Maybe we should not hide it? What is the best CLI UX practice?
+
+### Assistant — review of the two left-side comments
+
+Pulled the comments via `gh api repos/rafacm/musicbrainz-database-setup/pulls/7/comments`. Two points:
+
+1. **`logging.py:78` — `show_level=False`.** The reviewer flagged that hiding the level for *every* record makes WARNING / ERROR indistinguishable from normal progress text whenever colour is disabled or stripped, and noted the new `--no-color` flag makes this trivial to hit (`configure(no_color=True); logging.warning(...); logging.error(...)` renders as just the messages, no severity marker).
+2. **`README.md:120`.** The README still documented `✓ <label> · <elapsed>` but the implementation is `✓ <label> complete · <elapsed>` since the past-tense fix.
+
+### Assistant — research on best CLI UX practice for INFO/WARNING/ERROR
+
+Fetched [clig.dev](https://clig.dev/) and confirmed:
+
+> Don't print log level labels (`ERR`, `WARN`, etc.) or extraneous contextual information, unless in verbose mode.
+
+This explicitly endorses dropping the generic `INFO:` column on routine output, but it doesn't say anything about how to mark *actual* warnings/errors. Cross-checked with major user-facing CLIs:
+
+| CLI | Warning marker | Error marker |
+|---|---|---|
+| cargo | `warning:` (yellow when TTY) | `error:` (red bold) |
+| npm | `npm WARN <category>` | `npm ERR!` |
+| pip | `WARNING:` | `ERROR:` |
+| brew | `Warning:` | `Error:` |
+| gh | n/a | `error:` (red text in TTY) |
+| terraform | `Warning:` | `Error:` |
+
+Every one of them keeps an **explicit text label** for severity that survives colour stripping. So the right pattern is:
+
+- INFO / DEBUG: no level prefix — let symbols (`==>`, `✓`, `→`) carry the meaning.
+- WARNING: explicit `Warning:` text label, yellow when colour is on.
+- ERROR: explicit `Error:` text label, red bold when colour is on.
+
+### Assistant — implementation
+
+Added `_SeverityRichHandler(RichHandler)` in `logging.py`. Override of `render_message`:
+
+```python
+def render_message(self, record, message):
+    rendered = super().render_message(record, message)
+    assert isinstance(rendered, Text)
+    if record.levelno >= logging.ERROR:
+        return Text.assemble(("Error: ", "bold red"), rendered)
+    if record.levelno >= logging.WARNING:
+        return Text.assemble(("Warning: ", "bold yellow"), rendered)
+    return rendered
+```
+
+`super().render_message` returns `Text` in practice but its type hint is `ConsoleRenderable`; the `assert isinstance` keeps mypy happy and surfaces any future Rich change loudly. Swapped the `RichHandler(...)` instantiation for `_SeverityRichHandler(...)` (same kwargs, same highlighter).
+
+Three new tests in `test_logging.py` pin the contract:
+
+- `test_warning_records_get_explicit_text_label` — under `--no-color`, `logging.warning("careful")` renders `Warning: careful`.
+- `test_error_records_get_explicit_text_label` — under `--no-color`, `logging.error("bad")` renders `Error: bad`.
+- `test_info_records_have_no_level_prefix` — under `--no-color`, `logging.info("step done")` renders without `INFO`, `Info:`, `Warning:`, or `Error:` anywhere on the line.
+
+### Assistant — README footer doc fix
+
+Updated the "Supported commands" paragraph in `README.md` to:
+
+- Document the `==> Phase N/5 · <label>` banner (matches the brew-style implementation, was missed in the round-3 commit).
+- Use the past-tense `✓ <label> complete · <elapsed>` footer form.
+- Explicitly note that routine progress lines have no level prefix (matching brew / cargo conventions) while `Warning:` / `Error:` records keep an explicit text label.
+
+### Assistant — verification
+
+```
+uv run ruff check src tests   # All checks passed!
+uv run mypy src               # Success: no issues found in 29 source files
+uv run pytest -q              # 47 passed in 0.38s
+```
+
+Replied to both review comments via `gh api repos/.../pulls/7/comments` linking the commit that addresses each.
