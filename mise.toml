@@ -1,11 +1,18 @@
 # Demo-recording configuration. Override the port at the call site, e.g.:
-#   POSTGRES_PORT=5444 mise run docs:demo-record
+#   POSTGRES_PORT=5433 mise run docs:demo-record
 
 [tasks."docs:demo-record"]
 description = "Start a demo Postgres container, then record a terminal session for the README GIF (Ctrl-D to stop)"
-env = { POSTGRES_PORT = "5433", DEMO_CONTAINER = "musicbrainz-database-setup-demo" }
+env = { DEMO_CONTAINER = "musicbrainz-database-setup-demo" }
 run = """
+POSTGRES_PORT="${POSTGRES_PORT:-5432}"
 docker rm -f "$DEMO_CONTAINER" >/dev/null 2>&1 || true
+if lsof -nP -iTCP:"${POSTGRES_PORT}" -sTCP:LISTEN >/dev/null 2>&1; then
+  echo "Error: port ${POSTGRES_PORT} is already in use on localhost." >&2
+  echo "Stop whatever is using it, or pick another port:" >&2
+  echo "  POSTGRES_PORT=<port> mise run docs:demo-record" >&2
+  exit 1
+fi
 docker run -d \\
   --name "$DEMO_CONTAINER" \\
   -e POSTGRES_PASSWORD=postgres \\

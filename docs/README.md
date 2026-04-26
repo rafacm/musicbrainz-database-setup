@@ -147,12 +147,12 @@ brew install --cask font-cascadia-mono
 
 Three [`mise`](https://mise.jdx.dev/) tasks wrap the workflow:
 
-1. **Record** — starts a dedicated demo Postgres container on port `5433` (override with `POSTGRES_PORT=…`), then launches `asciinema` writing to `docs/assets/musicbrainz-database-setup.cast`. Run whatever commands you want to demo using the printed connection string, then press `Ctrl-D` to stop:
+1. **Record** — starts a dedicated demo Postgres container on port `5432` (override with `POSTGRES_PORT=…`), then launches `asciinema` writing to `docs/assets/musicbrainz-database-setup.cast`. The task pre-flights the port with `lsof` and fails fast if it's already in use, so a collision with another local Postgres prints an actionable message instead of a `docker run` networking error. Run whatever commands you want to demo using the printed connection string, then press `Ctrl-D` to stop:
 
    ```bash
    mise run docs:demo-record
-   # or, if 5433 is also taken:
-   POSTGRES_PORT=5444 mise run docs:demo-record
+   # or, if 5432 is taken:
+   POSTGRES_PORT=5433 mise run docs:demo-record
    ```
 
 2. **Render** — converts the `.cast` into `docs/assets/musicbrainz-database-setup.gif`:
