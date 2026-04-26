@@ -47,28 +47,25 @@ docker run -d \
 
 > 💡 **Want a faster import?** Add server-start tuning flags (`shared_buffers`, `max_wal_size`, `checkpoint_timeout`, …) to roughly halve post-import DDL time. See [Server-side tuning](docs/README.md#server-side-tuning-optional) in the reference guide for the tuned `docker run` and per-flag rationale.
 
-### 2. Install the CLI
+### 2. Import the database
+
+Connection string is `postgresql://<user>:<password>@<host>:<port>/<database>`. [`uvx`](https://docs.astral.sh/uv/guides/tools/) runs the CLI straight from GitHub — no clone, no `uv sync`, no virtualenv:
 
 ```bash
-uv sync
-```
-
-### 3. Import the database
-
-Connection string is `postgresql://<user>:<password>@<host>:<port>/<database>`.
-
-```bash
-uv run musicbrainz-database-setup run \
+uvx --from git+https://github.com/rafacm/musicbrainz-database-setup \
+  musicbrainz-database-setup run \
   --db postgresql://postgres:postgres@localhost:5432/postgres \
   --modules core \
   --latest
 ```
 
+> 💡 **Already have the repo checked out?** `uv sync` once, then `uv run musicbrainz-database-setup run ...` with the same flags. That's the path to use if you're hacking on the tool — see [Development](#development).
+
 If neither `--latest` nor `--date YYYYMMDD-HHMMSS` is passed, `run` interactively prompts for a dump directory from the mirror.
 
 The main configuration options have `MUSICBRAINZ_DATABASE_SETUP_*` env-var equivalents, and standard `PG*` libpq vars apply to the connection string. See [Configuration](docs/README.md#configuration) in the reference guide for the full list and how to keep the password out of the URL.
 
-### 4. Explore the data
+### 3. Explore the data
 
 Open a psql session against the database and run a couple of sanity queries:
 
@@ -125,7 +122,7 @@ Pass `--modules core,derived,…` (comma-separated) to select which `.tar.bz2` a
 
 ## Supported commands
 
-Run `uv run musicbrainz-database-setup --help` to see the available commands and options at any time.
+Run `uvx --from git+https://github.com/rafacm/musicbrainz-database-setup musicbrainz-database-setup --help` (or `uv run musicbrainz-database-setup --help` from a checkout) to see the available commands and options at any time.
 
 - `list-dumps`: print the dated dump directories on the mirror.
 - `download`: fetch the selected archives (SHA256-verified, resumable).

@@ -113,6 +113,11 @@ MUSICBRAINZ_DATABASE_SETUP_DB_URL=postgresql://postgres@localhost:5432/postgres
 
 ```bash
 PGPASSWORD="$(op read op://work/musicbrainz/password)" \
+  uvx --from git+https://github.com/rafacm/musicbrainz-database-setup \
+    musicbrainz-database-setup run --latest
+
+# or, from a checkout:
+PGPASSWORD="$(op read op://work/musicbrainz/password)" \
   uv run musicbrainz-database-setup run --latest
 ```
 
