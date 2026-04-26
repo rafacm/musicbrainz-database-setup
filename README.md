@@ -49,7 +49,7 @@ docker run -d \
 
 ### 2. Import the database
 
-Connection string is `postgresql://<user>:<password>@<host>:<port>/<database>`. [`uvx`](https://docs.astral.sh/uv/guides/tools/) runs the CLI straight from GitHub — no clone, no `uv sync`, no virtualenv:
+Use [`uvx`](https://docs.astral.sh/uv/guides/tools/) to run the CLI straight from GitHub:
 
 ```bash
 uvx --from git+https://github.com/rafacm/musicbrainz-database-setup \
@@ -59,9 +59,7 @@ uvx --from git+https://github.com/rafacm/musicbrainz-database-setup \
   --latest
 ```
 
-> 💡 **Already have the repo checked out?** `uv sync` once, then `uv run musicbrainz-database-setup run ...` with the same flags. That's the path to use if you're hacking on the tool — see [Development](#development).
-
-If neither `--latest` nor `--date YYYYMMDD-HHMMSS` is passed, `run` interactively prompts for a dump directory from the mirror.
+Connection string is `postgresql://<user>:<password>@<host>:<port>/<database>`. If neither `--latest` nor `--date YYYYMMDD-HHMMSS` is passed, `run` interactively prompts for a dump directory from the mirror.
 
 The main configuration options have `MUSICBRAINZ_DATABASE_SETUP_*` env-var equivalents, and standard `PG*` libpq vars apply to the connection string. See [Configuration](docs/README.md#configuration) in the reference guide for the full list and how to keep the password out of the URL.
 
