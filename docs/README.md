@@ -145,28 +145,37 @@ brew install asciinema agg
 brew install --cask font-cascadia-mono
 ```
 
-Three [`mise`](https://mise.jdx.dev/) tasks wrap the workflow:
-
-1. **Record** — starts a dedicated demo Postgres container on port `5432` (override with `POSTGRES_PORT=…`), then launches `asciinema` writing to `docs/assets/musicbrainz-database-setup.cast`. The task pre-flights the port with `lsof` and fails fast if it's already in use, so a collision with another local Postgres prints an actionable message instead of a `docker run` networking error. Run whatever commands you want to demo using the printed connection string, then press `Ctrl-D` to stop:
+1. **Record** — spins up an [import-tuned](#server-side-tuning-optional) Postgres on `localhost:5432` and launches `asciinema` with a stripped prompt so the GIF stays clean. Run your demo commands against the printed connection string, then press `Ctrl-D` to stop. Both the port and the container name are optional positional args:
 
    ```bash
    mise run docs:demo-record
    # or, if 5432 is taken:
-   POSTGRES_PORT=5433 mise run docs:demo-record
+   mise run docs:demo-record 5433
+   # full form:
+   mise run docs:demo-record 5433 my-demo-container
    ```
 
-2. **Render** — converts the `.cast` into `docs/assets/musicbrainz-database-setup.gif`:
+2. **Render** — converts the `.cast` into `docs/assets/musicbrainz-database-setup.gif`. Playback speed, FPS cap, and `agg` theme are optional positional args (defaults: `10`, `60`, `monokai`):
 
    ```bash
    mise run docs:demo-render
+   # tweak any/all:
+   mise run docs:demo-render 8 30 dracula
    ```
 
-3. **Cleanup** — removes the demo Postgres container:
+3. **Cleanup** — removes the demo Postgres container (and its anonymous volume):
 
    ```bash
-   mise run docs:demo-cleanup
+   mise run docs:postgres-stop musicbrainz-database-setup-demo
    ```
 
 Both the `.cast` and the `.gif` are committed; the `.cast` is the source of truth, and re-rendering only requires step 2.
 
-> 💡 The `agg` font family is fixed to `Cascadia Mono` because it's the only common monospace font that ships the Braille block (U+2800–U+28FF) used by `rich`'s default spinner. The popular programming-font families on macOS — FiraCode, Meslo, Hack, JetBrains Mono, even DejaVu Sans Mono — all strip Braille from their monospace variants. agg/usvg's font fallback only resolves missing family names, not missing glyph coverage, so the primary font has to cover everything. If you swap fonts, verify the spinner renders — a missing Braille glyph displays as `?`.
+The record task builds on three reusable container helpers, available directly if you want a Postgres for ad-hoc demoing or local imports:
+
+- `mise run docs:postgres-start <port> <container>` — start a stock `postgres:17-alpine` container, with an `lsof` port preflight that fails fast on collision.
+- `mise run docs:postgres-start-optimized <port> <container>` — same, plus the import-tuned flags from [Server-side tuning](#server-side-tuning-optional).
+- `mise run docs:postgres-stop <container>` — stop and remove a container (anonymous volume included).
+
+> 💡 We need  `Cascadia Mono` because it's the only common monospace font that ships the Braille block (U+2800–U+28FF) used by `rich`'s default spinner. The popular programming-font families on macOS — FiraCode, Meslo, Hack, JetBrains Mono, even DejaVu Sans Mono — all strip Braille from their monospace variants. agg/usvg's font fallback only resolves missing family names, not missing glyph coverage, so the primary font has to cover everything. If you swap fonts, verify the spinner renders — a missing Braille glyph displays as `?`.
+[`mise`](https://mise.jdx.dev/) tasks wrap the workflow:
