@@ -1,31 +1,98 @@
-# Demo-recording configuration. Override the port at the call site, e.g.:
-#   POSTGRES_PORT=5433 mise run docs:demo-record
+# Internal Postgres helpers used by the demo-recording tasks below.
+# Args are declared via mise's `usage` syntax (positional `$1`/`$2` are NOT
+# passed through to inline `run` scripts in the current mise version), and
+# bound to `$usage_<name>` inside the script.
 
-[tasks."docs:demo-record"]
-description = "Start a demo Postgres container, then record a terminal session for the README GIF (Ctrl-D to stop)"
-env = { DEMO_CONTAINER = "musicbrainz-database-setup-demo" }
+[tasks."docs:postgres-start"]
+description = "Start a stock postgres:17-alpine container."
+usage = '''
+arg "<port>" help="Port to bind on localhost (e.g. 5432)"
+arg "<container>" help="Docker container name"
+'''
 run = """
-POSTGRES_PORT="${POSTGRES_PORT:-5432}"
-docker rm -f "$DEMO_CONTAINER" >/dev/null 2>&1 || true
-if lsof -nP -iTCP:"${POSTGRES_PORT}" -sTCP:LISTEN >/dev/null 2>&1; then
-  echo "Error: port ${POSTGRES_PORT} is already in use on localhost." >&2
-  echo "Stop whatever is using it, or pick another port:" >&2
-  echo "  POSTGRES_PORT=<port> mise run docs:demo-record" >&2
+PORT="$usage_port"
+CONTAINER="$usage_container"
+docker rm -fv "$CONTAINER" >/dev/null 2>&1 || true
+if lsof -nP -iTCP:"$PORT" -sTCP:LISTEN >/dev/null 2>&1; then
+  echo "Error: port $PORT is already in use on localhost." >&2
+  echo "Stop whatever is using it, or pick another port." >&2
   exit 1
 fi
 docker run -d \\
-  --name "$DEMO_CONTAINER" \\
+  --name "$CONTAINER" \\
   -e POSTGRES_PASSWORD=postgres \\
-  -p "${POSTGRES_PORT}:5432" \\
+  -p "$PORT:5432" \\
   postgres:17-alpine
-echo
-echo "Postgres is running on localhost:${POSTGRES_PORT} (container: $DEMO_CONTAINER)."
-echo "Use this connection string when recording:"
-echo "  postgresql://postgres:postgres@localhost:${POSTGRES_PORT}/postgres"
+echo "Postgres is running on localhost:$PORT (container: $CONTAINER)."
+echo "Connection string: postgresql://postgres:postgres@localhost:$PORT/postgres"
+"""
+
+[tasks."docs:postgres-start-optimized"]
+description = "Start a postgres:17-alpine container with import-tuned settings (see docs/README.md)."
+usage = '''
+arg "<port>" help="Port to bind on localhost (e.g. 5432)"
+arg "<container>" help="Docker container name"
+'''
+run = """
+PORT="$usage_port"
+CONTAINER="$usage_container"
+docker rm -fv "$CONTAINER" >/dev/null 2>&1 || true
+if lsof -nP -iTCP:"$PORT" -sTCP:LISTEN >/dev/null 2>&1; then
+  echo "Error: port $PORT is already in use on localhost." >&2
+  echo "Stop whatever is using it, or pick another port." >&2
+  exit 1
+fi
+docker run -d \\
+  --name "$CONTAINER" \\
+  -e POSTGRES_PASSWORD=postgres \\
+  -p "$PORT:5432" \\
+  postgres:17-alpine \\
+  -c shared_buffers=2GB \\
+  -c max_wal_size=8GB \\
+  -c checkpoint_timeout=30min \\
+  -c effective_io_concurrency=200 \\
+  -c random_page_cost=1.1
+echo "Postgres (optimized) is running on localhost:$PORT (container: $CONTAINER)."
+echo "Connection string: postgresql://postgres:postgres@localhost:$PORT/postgres"
+"""
+
+[tasks."docs:postgres-stop"]
+description = "Stop and remove a Postgres container (anonymous volume included)."
+usage = '''
+arg "<container>" help="Docker container name"
+'''
+run = 'docker rm -fv "$usage_container"'
+
+# Demo-recording configuration. Override port and/or container at the call site, e.g.:
+#   mise run docs:demo-record 5433
+#   mise run docs:demo-record 5433 my-demo-container
+
+[tasks."docs:demo-record"]
+description = "Start a demo Postgres container, then record a terminal session for the README GIF (Ctrl-D to stop)"
+usage = '''
+arg "<port>" default="5432" help="Port to bind on localhost"
+arg "<container>" default="musicbrainz-database-setup-demo" help="Docker container name"
+'''
+# asciinema spawns a fresh interactive $SHELL, which re-sources ~/.zshrc and
+# reinstalls any Powerline-style prompt (oh-my-posh, p10k, etc.). Those tools
+# don't only register `precmd_functions`; they also install zle widgets and
+# transient-prompt hooks that re-fire on every redraw, so clearing precmd is
+# not enough. Point zsh at a temporary ZDOTDIR with a minimal .zshrc that
+# does NOT source the user's config — PATH (and `uv`) is inherited from the
+# parent mise process, which is all the recorded shell needs.
+run = """
+mise run docs:postgres-start-optimized "$usage_port" "$usage_container"
 echo
 echo "Recording starts now. Press Ctrl-D to stop."
 echo
-PROMPT='$ ' RPROMPT='' precmd_functions=() asciinema record \\
+DEMO_RC_DIR="$(mktemp -d)"
+trap 'rm -rf "$DEMO_RC_DIR"' EXIT
+cat > "$DEMO_RC_DIR/.zshrc" <<'RC'
+PROMPT='$ '
+PS1='$ '
+RPROMPT=''
+RC
+ZDOTDIR="$DEMO_RC_DIR" asciinema record \\
   --window-size 100x25 \\
   --overwrite \\
   docs/assets/musicbrainz-database-setup.cast
@@ -33,6 +100,11 @@ PROMPT='$ ' RPROMPT='' precmd_functions=() asciinema record \\
 
 [tasks."docs:demo-render"]
 description = "Render docs/assets/musicbrainz-database-setup.gif from the recorded .cast"
+usage = '''
+arg "<speed>" default="10" help="Playback speed multiplier (agg --speed)"
+arg "<fps-cap>" default="60" help="Maximum frames per second (agg --fps-cap)"
+arg "<theme>" default="monokai" help="agg color theme (e.g. monokai, dracula, solarized-dark)"
+'''
 # Cascadia Mono is the only common Mac/Linux monospace font that ships the
 # Braille block (U+2800–U+28FF) used by rich's default spinner. The popular
 # programming fonts (FiraCode, Meslo, Hack, JetBrains Mono, DejaVu Sans Mono)
@@ -41,14 +113,9 @@ description = "Render docs/assets/musicbrainz-database-setup.gif from the record
 run = """
 agg \\
   --font-family 'Cascadia Mono' \\
-  --speed 10 \\
-  --fps-cap 60 \\
-  --theme monokai \\
+  --speed "$usage_speed" \\
+  --fps-cap "$usage_fps_cap" \\
+  --theme "$usage_theme" \\
   docs/assets/musicbrainz-database-setup.cast \\
   docs/assets/musicbrainz-database-setup.gif
 """
-
-[tasks."docs:demo-cleanup"]
-description = "Remove the demo Postgres container created by docs:demo-record"
-env = { DEMO_CONTAINER = "musicbrainz-database-setup-demo" }
-run = 'docker rm -f "$DEMO_CONTAINER"'
