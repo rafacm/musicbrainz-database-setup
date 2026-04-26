@@ -16,11 +16,11 @@
 
 `musicbrainz-database-setup` is a Python CLI that sets up a full [MusicBrainz](https://musicbrainz.org/) database in PostgreSQL. Point it at a connection string and a dump, and it handles the rest: resumable, SHA256-verified downloads from the [MetaBrainz mirror](https://wiki.musicbrainz.org/MusicBrainz_Database/Download), schema creation via the upstream [`admin/sql/*.sql`](https://github.com/metabrainz/musicbrainz-server/tree/master/admin/sql) files, and streaming `COPY` of every table with live progress.
 
-This project originated from [RAGtime](https://github.com/rafacm/ragtime), where it powers the [entity-resolution step](https://github.com/rafacm/ragtime/tree/main/doc#8--resolve-entities-status-resolving) that maps extracted mentions to canonical MusicBrainz entities.
-
 <p align="center">
   <img src="docs/assets/musicbrainz-database-setup.gif" alt="musicbrainz-database-setup terminal demo" />
 </p>
+
+This project originated from [RAGtime](https://github.com/rafacm/ragtime), where it powers the [entity-resolution step](https://github.com/rafacm/ragtime/tree/main/doc#8--resolve-entities-status-resolving) that maps extracted mentions to canonical MusicBrainz entities.
 
 ## Requirements
 
