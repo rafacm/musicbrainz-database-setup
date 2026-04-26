@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), using dates (`## YYYY-MM-DD`) as section headers instead of version numbers.
 
+## 2026-04-26
+
+### Added
+
+- `docs:postgres-start <port> <container>`, `docs:postgres-start-optimized <port> <container>`, and `docs:postgres-stop <container>` mise tasks: reusable Docker helpers for spinning up a stock or import-tuned `postgres:17-alpine` container (the optimized variant carries the [Server-side tuning](docs/README.md#server-side-tuning-optional) flags). Used internally by `docs:demo-record`.
+
+### Changed
+
+- `docs:demo-record` and `docs:demo-render` now declare positional args via mise's [`usage` syntax](https://mise.jdx.dev/tasks/task-arguments.html). `docs:demo-record [port] [container]` defaults to `5432` / `musicbrainz-database-setup-demo`; `docs:demo-render [speed] [fps-cap] [theme]` defaults to `10` / `60` / `monokai`. `mise run <task> --help` self-documents both. Replaces the previous `POSTGRES_PORT=…` env-var override.
+- `docs:demo-record` now starts the import-tuned Postgres variant by default (was: stock `postgres:17-alpine`).
+- Demo recording shell no longer sources the user's `~/.zshrc`. Earlier attempts cleared `precmd_functions` after sourcing, but transient-prompt hooks installed via zle widgets (oh-my-posh, p10k) survived that and leaked rendering errors into the recording. The recording shell now runs against a minimal temporary `ZDOTDIR` with `PROMPT='$ '`; `PATH` (and `uv`) is inherited from the parent mise process.
+
+### Fixed
+
+- `docs:demo-record` `lsof`-pre-flights the requested port and aborts with an actionable message if it's already bound, instead of letting `docker run` fail with an opaque "Bind for 127.0.0.1:NNNN failed" networking error.
+- Every `docker rm` in the demo / postgres helpers is now `docker rm -fv` so the postgres image's anonymous data volume is reclaimed on each teardown, preventing dangling volumes from accumulating across re-recordings.
+
 ## 2026-04-25
 
 ### Added
