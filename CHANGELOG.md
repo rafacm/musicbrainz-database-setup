@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- `uvx --from git+https://github.com/rafacm/musicbrainz-database-setup musicbrainz-database-setup …` documented as the no-clone install path. README Quick start leads with the `uvx` form for one-shot users; the existing `uv sync` + `uv run` flow remains in a 💡 callout for contributors and is unchanged. The split-credentials snippet in `docs/README.md` gains the same `uvx` variant alongside the `uv run` form so the `PGPASSWORD="$(op read …)"` pattern is visible to both audiences. No source or packaging changes — the package was already shaped for `uvx` (`[project.scripts]`, hatchling src-layout, no `__file__`-relative resource lookup); this PR just surfaces it. Plan: [`docs/plans/2026-04-26-uvx-invocation.md`](docs/plans/2026-04-26-uvx-invocation.md). Feature doc: [`docs/features/2026-04-26-uvx-invocation.md`](docs/features/2026-04-26-uvx-invocation.md). Sessions: [planning](docs/sessions/2026-04-26-uvx-invocation-planning-session.md), [implementation](docs/sessions/2026-04-26-uvx-invocation-implementation-session.md).
 - `docs:postgres-start <port> <container>`, `docs:postgres-start-optimized <port> <container>`, and `docs:postgres-stop <container>` mise tasks: reusable Docker helpers for spinning up a stock or import-tuned `postgres:17-alpine` container (the optimized variant carries the [Server-side tuning](docs/README.md#server-side-tuning-optional) flags). Used internally by `docs:demo-record`.
 
 ### Changed
