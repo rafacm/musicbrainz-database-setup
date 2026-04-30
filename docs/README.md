@@ -37,6 +37,8 @@ The tool also works against managed PostgreSQL (RDS, Cloud SQL, etc.) as long as
 
 Stock Postgres defaults (`shared_buffers=128 MB`, `maintenance_work_mem=64 MB`, `synchronous_commit=on`, `max_wal_size=1 GB`) leave significant performance on the table during index builds and constraint validation. The tool sets per-session tuning via `PGOPTIONS` for every `admin/sql/*.sql` invocation, but a handful of server-side knobs can only be set on the running instance. Four of them are SIGHUP-reloadable (`pg_reload_conf()` is enough — no Postgres restart required) and roughly halve post-import DDL time. Apply them before the import and revert after:
 
+Set `DB_URL` to the connection string you'd pass to `--db`. The literal below matches the [README quick-start](../README.md#2-import-the-database)'s demo container — substitute your own host, user, password, and database. If your password lives elsewhere (a `.env`, a secret manager, `~/.pgpass`), keep it out of `DB_URL` and use `PGPASSWORD` instead — see [Splitting the connection string](#splitting-the-connection-string) below.
+
 ```bash
 # Connection string used by both psql and the tool
 export DB_URL=postgresql://postgres:postgres@localhost:5432/postgres
