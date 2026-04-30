@@ -45,7 +45,7 @@ docker run -d \
   postgres:17-alpine
 ```
 
-> 💡 **Want a faster import?** Add server-start tuning flags (`shared_buffers`, `max_wal_size`, `checkpoint_timeout`, …) to roughly halve post-import DDL time. See [Server-side tuning](docs/README.md#server-side-tuning-optional) in the reference guide for the tuned `docker run` and per-flag rationale.
+> 💡 **Want a faster import?** Run two short `psql` blocks before and after the import — `ALTER SYSTEM SET` four reload-able knobs (`max_wal_size`, `checkpoint_timeout`, …) and `ALTER SYSTEM RESET` them after — to roughly halve post-import DDL time without restarting Postgres. See [Server-side tuning](docs/README.md#server-side-tuning-optional) in the reference guide for the statements and per-setting rationale.
 
 ### 2. Import the database
 

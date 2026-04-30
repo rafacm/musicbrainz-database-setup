@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), using dates (`## YYYY-MM-DD`) as section headers instead of version numbers.
 
+## 2026-04-30
+
+### Changed
+
+- `docs/README.md` "Server-side tuning (optional)" section now documents two `psql` `ALTER SYSTEM` blocks (apply, revert) bracketing the `run` command, instead of a tuned `docker run -c …` invocation. Four SIGHUP-reloadable knobs (`max_wal_size=8GB`, `checkpoint_timeout=30min`, `effective_io_concurrency=200`, `random_page_cost=1.1`) — `pg_reload_conf()` is enough; no Postgres restart required, so the optimization works against an existing Postgres instance the user doesn't want to recreate. `shared_buffers=2GB` drops out of the documented path (postmaster-only, restart-only) and is mentioned only as a 💡 aside for power users who control their Postgres startup. The README quick-start 💡 callout updates accordingly. Resolves [#13](https://github.com/rafacm/musicbrainz-database-setup/issues/13) — a `--auto-tune` flag was considered and rejected in favor of this docs-only path; the grill-me design pass is preserved in the planning session transcript. Plan: [`docs/plans/2026-04-30-manual-tuning-statements.md`](docs/plans/2026-04-30-manual-tuning-statements.md). Feature doc: [`docs/features/2026-04-30-manual-tuning-statements.md`](docs/features/2026-04-30-manual-tuning-statements.md). Sessions: [planning](docs/sessions/2026-04-30-manual-tuning-statements-planning-session.md), [implementation](docs/sessions/2026-04-30-manual-tuning-statements-implementation-session.md).
+
 ## 2026-04-26
 
 ### Added
