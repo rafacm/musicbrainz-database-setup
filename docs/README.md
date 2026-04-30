@@ -35,25 +35,40 @@ The tool also works against managed PostgreSQL (RDS, Cloud SQL, etc.) as long as
 
 ### Server-side tuning (optional)
 
-Stock Postgres defaults (`shared_buffers=128 MB`, `maintenance_work_mem=64 MB`, `synchronous_commit=on`, `max_wal_size=1 GB`) leave significant performance on the table during index builds and constraint validation. The tool sets per-session tuning via `PGOPTIONS` for every `admin/sql/*.sql` invocation, but a handful of knobs can only be set at server start. If you're spinning up the Postgres container yourself, the following flags roughly halve post-import DDL time:
+Stock Postgres defaults (`shared_buffers=128 MB`, `maintenance_work_mem=64 MB`, `synchronous_commit=on`, `max_wal_size=1 GB`) leave significant performance on the table during index builds and constraint validation. The tool sets per-session tuning via `PGOPTIONS` for every `admin/sql/*.sql` invocation, but a handful of server-side knobs can only be set on the running instance. Four of them are SIGHUP-reloadable (`pg_reload_conf()` is enough — no Postgres restart required) and roughly halve post-import DDL time. Apply them before the import and revert after:
 
 ```bash
-docker run -d --name musicbrainz-postgres \
-  -e POSTGRES_PASSWORD=postgres \
-  -p 5432:5432 \
-  postgres:17-alpine \
-  -c shared_buffers=2GB \
-  -c max_wal_size=8GB \
-  -c checkpoint_timeout=30min \
-  -c effective_io_concurrency=200 \
-  -c random_page_cost=1.1
+# Before — apply tuning
+psql "$DB_URL" <<'SQL'
+ALTER SYSTEM SET max_wal_size = '8GB';
+ALTER SYSTEM SET checkpoint_timeout = '30min';
+ALTER SYSTEM SET effective_io_concurrency = 200;
+ALTER SYSTEM SET random_page_cost = 1.1;
+SELECT pg_reload_conf();
+SQL
+
+# Run the import
+uvx --from git+https://github.com/rafacm/musicbrainz-database-setup \
+  musicbrainz-database-setup run --db "$DB_URL" --modules core --latest
+
+# After — revert tuning
+psql "$DB_URL" <<'SQL'
+ALTER SYSTEM RESET max_wal_size;
+ALTER SYSTEM RESET checkpoint_timeout;
+ALTER SYSTEM RESET effective_io_concurrency;
+ALTER SYSTEM RESET random_page_cost;
+SELECT pg_reload_conf();
+SQL
 ```
 
-- `shared_buffers=2GB` — default 128 MB forces constant disk re-reads during CHECK/FK full-table scans; at 2 GB the hot tables fit in cache without starving the rest of the 8 GB Docker Desktop VM. (If your VM has more RAM, you can safely push this to `4GB`.)
 - `max_wal_size=8GB` + `checkpoint_timeout=30min` — default 1 GB / 5 min triggers checkpoints every couple of minutes during COPY.
 - `effective_io_concurrency=200` + `random_page_cost=1.1` — signal to the planner that the underlying storage (Docker named volume on SSD) isn't a spinning disk.
 
-> ⚠️ **Memory sizing.** The tool applies `maintenance_work_mem=1GB` per psql session during DDL, and CREATE INDEX can fan out to `1 + max_parallel_maintenance_workers` workers each using that budget — up to **5 GB peak** on a single statement. Combined with `shared_buffers=2GB` above, that's ~7 GB of Postgres's own memory, fitting an 8 GB Docker Desktop VM with headroom for the OS and page cache. Raising `shared_buffers` beyond 2 GB on an 8 GB VM risks OOM kills during `CreateFKConstraints.sql` / `CreateConstraints.sql` — we hit this on 2026-04-24 with `shared_buffers=4GB`.
+`ALTER SYSTEM` requires a role with **`SUPERUSER`** privileges (or `pg_alter_system` membership on PG 16+). The default `postgres` user from the official Docker image qualifies. Settings are server-wide — they affect every database on the instance for as long as they're applied — so `pg_reload_conf()` after the RESET block returns the instance to its prior config without leaving anything behind.
+
+> 💡 **Power users with control over Postgres startup.** A fifth knob — `shared_buffers=2GB` — gives a further win during CHECK/FK full-table scans, but it's `postmaster`-only: it can't be reloaded; the server has to be restarted. If you spin up Postgres yourself (e.g. `docker run … postgres:17-alpine -c shared_buffers=2GB`) you can pin it at startup. We don't include it in the `psql` blocks above because the tool's audience usually has a Postgres they don't want to restart.
+
+> ⚠️ **Memory sizing.** The tool applies `maintenance_work_mem=1GB` per psql session during DDL, and CREATE INDEX can fan out to `1 + max_parallel_maintenance_workers` workers each using that budget — up to **5 GB peak** on a single statement. On an 8 GB Docker Desktop VM that leaves comfortable headroom for the OS and page cache. If you've also pinned `shared_buffers=2GB` at server start, budget ~7 GB of Postgres memory total; pushing `shared_buffers` higher on an 8 GB VM risks OOM kills during `CreateFKConstraints.sql` / `CreateConstraints.sql` — we hit this on 2026-04-24 with `shared_buffers=4GB`.
 
 ### Client (`psql`)
 
