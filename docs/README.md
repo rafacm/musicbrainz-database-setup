@@ -38,6 +38,9 @@ The tool also works against managed PostgreSQL (RDS, Cloud SQL, etc.) as long as
 Stock Postgres defaults (`shared_buffers=128 MB`, `maintenance_work_mem=64 MB`, `synchronous_commit=on`, `max_wal_size=1 GB`) leave significant performance on the table during index builds and constraint validation. The tool sets per-session tuning via `PGOPTIONS` for every `admin/sql/*.sql` invocation, but a handful of server-side knobs can only be set on the running instance. Four of them are SIGHUP-reloadable (`pg_reload_conf()` is enough — no Postgres restart required) and roughly halve post-import DDL time. Apply them before the import and revert after:
 
 ```bash
+# Connection string used by both psql and the tool
+export DB_URL=postgresql://postgres:postgres@localhost:5432/postgres
+
 # Before — apply tuning
 psql "$DB_URL" <<'SQL'
 ALTER SYSTEM SET max_wal_size = '8GB';
